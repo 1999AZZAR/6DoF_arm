@@ -177,6 +177,30 @@ The system supports creating and managing movement sequences (Planning Sets) for
 3. Move joints using sliders - each movement is recorded as a waypoint
 4. Click "Stop Recording" when finished
 
+### Teaching by Demonstration
+
+For more intuitive programming, you can physically move the robot arm to "teach" it sequences:
+
+#### Hardware Setup:
+- Connect potentiometers to each joint: `A0, A1, A2, A3, A6, A7`
+- Potentiometers should be mechanically linked to joint positions
+- Calibration: Ensure pot range (0-1023) maps to joint range (min-max)
+
+#### Teaching Process:
+1. Enter sequence name
+2. Click "Start Teaching" (button turns red)
+3. **Physically move the robot arm by hand**
+4. GUI shows live position feedback from potentiometers
+5. Arduino automatically records positions as you move
+6. Click "Stop Teaching" when finished
+
+#### Teaching Commands:
+```
+TEACH_START:sequence_index:name    - Start teaching mode
+TEACH_STOP                        - Stop teaching mode
+READ_POSITIONS                    - Get current pot positions
+```
+
 ### Managing Sequences
 
 - **Play Selected**: Execute the selected sequence from the list

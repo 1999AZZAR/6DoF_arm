@@ -101,7 +101,12 @@ class ArmControlGUI(QMainWindow):
 
         # Planning sets variables
         self.is_recording = False
+        self.is_teaching = False
         self.current_sequence_index = 0
+
+        # Teaching mode timer
+        self.teaching_timer = QTimer()
+        self.teaching_timer.timeout.connect(self.update_teaching_positions)
 
     def create_joint_controls(self):
         """Create joint control sliders"""
@@ -218,6 +223,11 @@ class ArmControlGUI(QMainWindow):
         self.record_btn.clicked.connect(self.toggle_recording)
         self.record_btn.setStyleSheet("QPushButton { background-color: orange; color: white; }")
         record_layout.addWidget(self.record_btn)
+
+        self.teach_btn = QPushButton("Start Teaching")
+        self.teach_btn.clicked.connect(self.toggle_teaching)
+        self.teach_btn.setStyleSheet("QPushButton { background-color: green; color: white; }")
+        record_layout.addWidget(self.teach_btn)
 
         planning_layout.addLayout(record_layout)
 
@@ -426,6 +436,28 @@ class ArmControlGUI(QMainWindow):
             except Exception as e:
                 self.add_status_message(f"Parse error: {e}")
 
+        elif data.startswith("POSITIONS:"):
+            # Handle potentiometer position readings during teaching
+            try:
+                positions_part = data[10:]  # Remove "POSITIONS:"
+                position_pairs = positions_part.split(",")
+
+                for pair in position_pairs:
+                    if ":" in pair:
+                        joint_part, angle_part = pair.split(":")
+                        joint_num = int(joint_part[1:]) - 1  # J1 -> 0
+                        angle = int(angle_part)
+
+                        if 0 <= joint_num < 6:
+                            # Update slider without triggering valueChanged
+                            self.joint_sliders[joint_num].blockSignals(True)
+                            self.joint_sliders[joint_num].setValue(angle)
+                            self.joint_sliders[joint_num].blockSignals(False)
+                            self.joint_value_labels[joint_num].setText(f"{angle}°")
+
+            except Exception as e:
+                self.add_status_message(f"Position parse error: {e}")
+
         elif data.startswith("SEQUENCE:"):
             # Handle sequence list response
             self.sequence_list.clear()
@@ -480,6 +512,42 @@ class ArmControlGUI(QMainWindow):
             self.record_btn.setStyleSheet("QPushButton { background-color: orange; color: white; }")
             self.add_status_message("Stopped recording sequence")
             self.refresh_sequence_list()
+
+    def toggle_teaching(self):
+        """Start or stop teaching mode"""
+        if not self.serial_worker:
+            QMessageBox.warning(self, "Error", "Not connected to Arduino")
+            return
+
+        sequence_name = self.sequence_name_edit.text().strip()
+        if not sequence_name:
+            QMessageBox.warning(self, "Error", "Please enter a sequence name")
+            return
+
+        if not self.is_teaching:
+            # Start teaching
+            command = f"TEACH_START:{self.current_sequence_index}:{sequence_name}"
+            self.serial_worker.send_command(command)
+            self.is_teaching = True
+            self.teach_btn.setText("Stop Teaching")
+            self.teach_btn.setStyleSheet("QPushButton { background-color: red; color: white; }")
+            self.teaching_timer.start(200)  # Update every 200ms
+            self.add_status_message(f"Started teaching sequence: {sequence_name}")
+            self.add_status_message("Move the robot arm physically to record positions")
+        else:
+            # Stop teaching
+            self.serial_worker.send_command("TEACH_STOP")
+            self.is_teaching = False
+            self.teach_btn.setText("Stop Teaching")
+            self.teach_btn.setStyleSheet("QPushButton { background-color: green; color: white; }")
+            self.teaching_timer.stop()
+            self.add_status_message("Stopped teaching sequence")
+            self.refresh_sequence_list()
+
+    def update_teaching_positions(self):
+        """Update GUI with current potentiometer positions during teaching"""
+        if self.serial_worker and self.is_teaching:
+            self.serial_worker.send_command("READ_POSITIONS")
 
     def play_selected_sequence(self):
         """Play the selected sequence"""
