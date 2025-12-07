@@ -149,6 +149,9 @@ Run the GUI application:
 python arm_control_gui.py
 ```
 
+![GUI Interface](assets/gui.png)
+*Python Qt6 GUI interface showing joint controls, preset positions, and status monitoring*
+
 **GUI Features**:
 
 1. **Connection Panel**:
