@@ -33,7 +33,7 @@ const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 
 // Serial communication settings
 #define SERIAL_BAUD_RATE 115200
-#define SERIAL_BUFFER_SIZE 200
+#define SERIAL_BUFFER_SIZE 100  // Optimized buffer size
 
 // Command definitions
 #define CMD_HOME "HOME"

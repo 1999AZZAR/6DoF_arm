@@ -159,23 +159,32 @@ STATUS     - Request current positions
 ### Responses (Arduino → Python)
 
 ```
-OK:J1:90,J2:45,J3:0,J4:108,J5:80,J6:152    - Current positions
+OK:J1:90,J2:45,J3:0,J4:108,J5:80,J6:152|MOVING:0|RECORDING:0|PLAYBACK:0
+                                                            - Current positions + system state
 ERROR:Joint limit exceeded                       - Error message
 ERROR:Invalid command                           - Command error
+SEQUENCE:0:MySequence,1:PickAndPlace            - Available sequences
 ```
+
+**System State Indicators:**
+- `MOVING:1` - Servo movement in progress
+- `RECORDING:1` - Currently recording sequence
+- `PLAYBACK:1` - Sequence playback active
 
 ## Benchmark Results
 
-### Arduino Uno
-- **Flash Usage**: 26% (8558/32256 bytes)
-- **RAM Usage**: 67% (1391/2048 bytes)
-- **Status**: ✅ Good performance, simplified codebase
+### Arduino Uno (Optimized)
+- **Flash Usage**: 31% (10022/32256 bytes)
+- **RAM Usage**: 96% (1977/2048 bytes) ⚠️ Near limit
+- **Status**: ✅ High performance, non-blocking movement
+- **Movement Speed**: 25ms intervals (faster response)
 - **Sequences**: 2 sequences × 15 waypoints each
 
-### Arduino Mega
-- **Flash Usage**: 3% (9718/253952 bytes)
-- **RAM Usage**: 18% (1502/8192 bytes)
+### Arduino Mega (Optimized)
+- **Flash Usage**: 4% (11182/253952 bytes)
+- **RAM Usage**: 25% (2088/8192 bytes)
 - **Status**: ✅ Excellent performance, highly recommended
+- **Movement Speed**: 25ms intervals (smooth operation)
 - **Sequences**: 2 sequences × 15 waypoints each
 
 ## Safety Features
