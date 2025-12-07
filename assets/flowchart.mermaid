@@ -1,0 +1,265 @@
+flowchart TD
+    %% System Overview Comment
+    subgraph "6DOF Robot Arm Control System"
+        direction TB
+
+        %% User Interface Layer
+        subgraph "User Interface Layer"
+            UI[User Interface<br/>Python Qt6 GUI]
+            JointCtrl[Joint Control Panel<br/>6 Sliders J1-J6]
+            PresetCtrl[Preset Positions<br/>HOME, MIN, MAX, WAVE]
+            SpeedCtrl[Movement Speed Control<br/>5-200ms configurable]
+            SeqCtrl[Sequence Management<br/>Record/Play/Delete]
+            StatusMon[Status Monitor<br/>Real-time feedback]
+            ConnectCtrl[Connection Control<br/>Port selection & status]
+        end
+
+        %% Communication Layer
+        subgraph "Communication Layer"
+            SerialProto[Serial Communication Protocol<br/>115200 baud, text-based]
+            CmdParser[Command Parser<br/>Validate & process commands]
+            RespHandler[Response Handler<br/>Format & send feedback]
+        end
+
+        %% Arduino Control Layer
+        subgraph "Arduino Control Layer"
+            MainLoop[Main Control Loop<br/>code.ino loop()]
+            CmdProcessor[Command Processor<br/>processCommand()]
+            SafetySys[Safety System<br/>Limit validation & emergency stop]
+            SeqMgr[Sequence Manager<br/>Record & playback sequences]
+        end
+
+        %% Hardware Control Layer
+        subgraph "Hardware Control Layer"
+            ServoCtrl[Servo Controller<br/>6 Servo motors]
+            Joint1[Joint 1 - Base<br/>Pin 9, 0-180°]
+            Joint2[Joint 2 - Shoulder<br/>Pin 8, 30-150°]
+            Joint3[Joint 3 - Elbow<br/>Pin 7, 0-180°]
+            Joint4[Joint 4 - Wrist Rotation<br/>Pin 6, 0-180°]
+            Joint5[Joint 5 - Wrist Bend<br/>Pin 5, 0-180°]
+            Joint6[Joint 6 - Gripper<br/>Pin 4, 90-180°]
+        end
+
+        %% Sequence Management Layer
+        subgraph "Sequence Management Layer"
+            SeqRecord[Sequence Recording<br/>Capture joint positions]
+            SeqStorage[Sequence Storage<br/>RAM-based, 2 sequences × 15 points]
+            SeqPlayback[Sequence Playback<br/>Execute recorded movements]
+            SeqFileIO[Sequence File I/O<br/>Save/Load JSON files]
+        end
+
+        %% Data Storage Layer
+        subgraph "Data Storage Layer"
+            JointPos[Joint Positions Array<br/>int jointPositions[6]]
+            ConfigData[Configuration Data<br/>Limits, home positions, pins]
+            SeqData[Sequence Data<br/>Struct arrays in RAM]
+        end
+    end
+
+    %% Main User Interaction Flows
+    User[User] --> UI
+    UI --> JointCtrl
+    UI --> PresetCtrl
+    UI --> SpeedCtrl
+    UI --> SeqCtrl
+    UI --> StatusMon
+    UI --> ConnectCtrl
+
+    %% Serial Communication Flow
+    ConnectCtrl --> SerialProto
+    SerialProto --> CmdParser
+    CmdParser --> RespHandler
+
+    %% Command Processing Flow
+    CmdParser --> MainLoop
+    MainLoop --> CmdProcessor
+
+    %% Command Routing
+    CmdProcessor --> |"J1:90, J2:45, etc."| SafetySys
+    CmdProcessor --> |"HOME, MIN, MAX, WAVE"| PresetCtrl
+    CmdProcessor --> |"SET_SPEED:15"| SpeedCtrl
+    CmdProcessor --> |"RECORD_START:name"| SeqMgr
+    CmdProcessor --> |"PLAY_SEQUENCE:id"| SeqMgr
+    CmdProcessor --> |"LIST_SEQUENCES"| SeqMgr
+    CmdProcessor --> |"STOP"| SafetySys
+
+    %% Safety System Flow
+    SafetySys --> |Valid commands| ServoCtrl
+    SafetySys --> |Invalid commands| RespHandler
+    SafetySys -.-> |Emergency stop| ServoCtrl
+
+    %% Servo Control Flow
+    ServoCtrl --> Joint1
+    ServoCtrl --> Joint2
+    ServoCtrl --> Joint3
+    ServoCtrl --> Joint4
+    ServoCtrl --> Joint5
+    ServoCtrl --> Joint6
+
+    %% Sequence Management Flow
+    SeqMgr --> SeqRecord
+    SeqMgr --> SeqPlayback
+    SeqRecord --> SeqStorage
+    SeqPlayback --> SeqStorage
+    SeqStorage --> SeqFileIO
+
+    %% Data Flow Connections
+    JointPos --> ServoCtrl
+    JointPos --> RespHandler
+    ConfigData --> CmdProcessor
+    ConfigData --> SafetySys
+    SeqData --> SeqMgr
+
+    %% Feedback Loops
+    ServoCtrl --> JointPos
+    SeqRecord --> JointPos
+    SeqPlayback --> ServoCtrl
+
+    %% Status Feedback Flow
+    JointPos --> StatusMon
+    RespHandler --> StatusMon
+    SeqMgr --> StatusMon
+
+    %% Styling and Classes
+    classDef userInterface fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef communication fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef control fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef hardware fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef sequence fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef storage fill:#f9fbe7,stroke:#827717,stroke-width:2px
+    classDef critical fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+
+    class UI,JointCtrl,PresetCtrl,SpeedCtrl,SeqCtrl,StatusMon,ConnectCtrl userInterface
+    class SerialProto,CmdParser,RespHandler communication
+    class MainLoop,CmdProcessor,SafetySys control
+    class ServoCtrl,Joint1,Joint2,Joint3,Joint4,Joint5,Joint6 hardware
+    class SeqMgr,SeqRecord,SeqStorage,SeqPlayback,SeqFileIO sequence
+    class JointPos,ConfigData,SeqData storage
+    class SafetySys critical
+
+    %% Detailed Command Processing Subflow
+    subgraph "Command Processing Details"
+        direction LR
+        CmdInput[Command Input<br/>String from Serial]
+        CmdValidate[Validate Command<br/>Check format & length]
+        CmdRoute[Route Command<br/>By command type]
+        JointCmd[Joint Commands<br/>J1:90, J2:45, etc.]
+        PresetCmd[Preset Commands<br/>HOME, MIN, MAX, WAVE]
+        SpeedCmd[Speed Commands<br/>SET_SPEED:15]
+        SeqCmd[Sequence Commands<br/>RECORD_START, PLAY_SEQUENCE]
+        SafetyCmd[Safety Commands<br/>STOP, STATUS]
+        InvalidCmd[Invalid Commands<br/>Unknown or malformed]
+
+        CmdInput --> CmdValidate
+        CmdValidate --> CmdRoute
+        CmdRoute --> JointCmd
+        CmdRoute --> PresetCmd
+        CmdRoute --> SpeedCmd
+        CmdRoute --> SeqCmd
+        CmdRoute --> SafetyCmd
+        CmdRoute --> InvalidCmd
+    end
+
+    CmdProcessor -.-> CmdInput
+
+    %% Joint Movement Subflow
+    subgraph "Joint Movement Details"
+        direction LR
+        TargetSet[Set Target Position<br/>Validate against limits]
+        CurrentRead[Read Current Position<br/>From jointPositions array]
+        DirectionCalc[Calculate Movement Direction<br/>Clockwise/Counter-clockwise]
+        StepMove[Step-by-Step Movement<br/>With configurable delay]
+        PositionUpdate[Update Position Array<br/>After movement complete]
+        FeedbackSend[Send Position Feedback<br/>Via serial response]
+
+        TargetSet --> CurrentRead
+        CurrentRead --> DirectionCalc
+        DirectionCalc --> StepMove
+        StepMove --> PositionUpdate
+        PositionUpdate --> FeedbackSend
+    end
+
+    ServoCtrl -.-> TargetSet
+
+    %% Sequence Recording Subflow
+    subgraph "Sequence Recording Details"
+        direction LR
+        RecordStart[Start Recording<br/>RECORD_START:name]
+        PositionCapture[Capture Current Positions<br/>All 6 joints]
+        SequenceAdd[Add to Sequence Array<br/>Store joint positions]
+        RecordStop[Stop Recording<br/>RECORD_STOP]
+        SequenceSave[Save Sequence<br/>To memory slot]
+
+        RecordStart --> PositionCapture
+        PositionCapture --> SequenceAdd
+        SequenceAdd --> RecordStop
+        RecordStop --> SequenceSave
+    end
+
+    SeqRecord -.-> RecordStart
+
+    %% Sequence Playback Subflow
+    subgraph "Sequence Playback Details"
+        direction LR
+        PlaybackStart[Start Playback<br/>PLAY_SEQUENCE:id]
+        SequenceLoad[Load Sequence Data<br/>From memory slot]
+        PointExecute[Execute Each Point<br/>Move to stored positions]
+        DelayApply[Apply Point Delay<br/>Timing control]
+        PlaybackComplete[Playback Complete<br/>Send completion status]
+
+        PlaybackStart --> SequenceLoad
+        SequenceLoad --> PointExecute
+        PointExecute --> DelayApply
+        DelayApply --> PlaybackComplete
+    end
+
+    SeqPlayback -.-> PlaybackStart
+
+    %% Error Handling Subflow
+    subgraph "Error Handling Details"
+        direction LR
+        ErrorDetect[Error Detection<br/>Validation failures]
+        ErrorClassify[Error Classification<br/>Joint limit, invalid command, etc.]
+        ErrorResponse[Error Response<br/>Format error message]
+        ErrorLog[Error Logging<br/>Send via serial]
+        RecoveryAction[Recovery Action<br/>Stop movement, reset state]
+
+        ErrorDetect --> ErrorClassify
+        ErrorClassify --> ErrorResponse
+        ErrorResponse --> ErrorLog
+        ErrorLog --> RecoveryAction
+    end
+
+    SafetySys -.-> ErrorDetect
+
+    %% Configuration Details
+    subgraph "System Configuration"
+        direction TB
+        PinConfig[Pin Configuration<br/>SERVO_PINS[6] = {9,8,7,6,5,4}]
+        LimitConfig[Joint Limits<br/>JOINT_MIN/MAX arrays]
+        HomeConfig[Home Position<br/>HOME_POSITIONS[6] = {92,85,45,108,80,152}]
+        SpeedConfig[Movement Speed<br/>MOVE_SPEED = 15ms (configurable)]
+        SerialConfig[Serial Settings<br/>115200 baud, 100 char buffer]
+
+        PinConfig --> ServoCtrl
+        LimitConfig --> SafetySys
+        HomeConfig --> CmdProcessor
+        SpeedConfig --> ServoCtrl
+        SerialConfig --> SerialProto
+    end
+
+    %% Performance Optimization Notes
+    subgraph "Performance Optimizations"
+        direction LR
+        MemoryOpt[Memory Optimization<br/>Reduced sequence limits for Uno]
+        SpeedOpt[Movement Speed Control<br/>Configurable delay 5-200ms]
+        BlockingMove[Blocking Movement<br/>Reliable step-by-step control]
+        BufferOpt[Buffer Optimization<br/>100 char serial buffer]
+        ValidationOpt[Validation Optimization<br/>Fast limit checking]
+
+        MemoryOpt --> SeqStorage
+        SpeedOpt --> ServoCtrl
+        BlockingMove --> Joint1
+        BufferOpt --> SerialProto
+        ValidationOpt --> SafetySys
+    end

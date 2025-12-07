@@ -88,6 +88,23 @@ Experience the 6DOF Robot Arm in your browser:
 - See servo movements visually
 - Perfect for learning and testing
 
+## System Overview
+
+### Hardware Assembly
+![Robot Arm Assembly](assets/arm_assambler.jpg)
+*Complete 6DOF robot arm assembly showing servo motor connections and mechanical structure*
+
+### Component Layout
+![Robot Arm Components](assets/arm_component.jpg)
+*Detailed view of robot arm components and joint configurations*
+
+### System Architecture
+The system consists of layered architecture for reliable control:
+
+**User Interface Layer** → **Communication Layer** → **Control Layer** → **Hardware Layer**
+
+For detailed system flow and component interactions, see the [complete system flowchart](assets/flowchart.mermaid).
+
 ## Project Structure
 
 ```
@@ -443,6 +460,16 @@ Modify the `send_preset_command` method in the Python code to customize preset p
 3. Run GUI with proper display (not headless)
 
 ## Development
+
+### System Documentation
+
+- **Complete System Flowchart**: [View detailed Mermaid flowchart](assets/flowchart.mermaid)
+  - User interface interactions
+  - Serial communication protocol
+  - Command processing flows
+  - Hardware control sequences
+  - Safety and validation systems
+  - Sequence management operations
 
 ### Adding New Features
 
