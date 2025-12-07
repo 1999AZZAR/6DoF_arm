@@ -47,6 +47,9 @@ boolean stringComplete = false;
 // Safety flags
 boolean emergencyStop = false;
 
+// Movement speed (configurable via SET_SPEED command)
+int MOVE_SPEED = 15; // Optimized for smooth and responsive movement
+
 // Movement timing optimization
 unsigned long lastMovementTime = 0;
 const unsigned long MOVEMENT_INTERVAL = 25; // Faster, smoother movement (was 50ms)
@@ -258,6 +261,8 @@ void processCommand(String command) {
   } else if (command == CMD_WAVE) {
     waveServos();
     sendStatus();
+  } else if (command.startsWith(CMD_SET_SPEED)) {
+    processSetSpeedCommand(command);
   } else if (command.startsWith(CMD_RECORD_START)) {
     processRecordStartCommand(command);
   } else if (command == CMD_RECORD_STOP) {
@@ -409,6 +414,30 @@ void listSequences() {
   }
 }
 
+
+// Process SET_SPEED command
+void processSetSpeedCommand(String command) {
+  // Format: SET_SPEED:speed_value
+  int colonIndex = command.indexOf(':');
+  if (colonIndex == -1) {
+    Serial.println("ERROR:Invalid SET_SPEED format. Use SET_SPEED:15");
+    return;
+  }
+
+  String speedStr = command.substring(colonIndex + 1);
+  int newSpeed = speedStr.toInt();
+
+  // Validate speed range (reasonable limits)
+  if (newSpeed < 5 || newSpeed > 200) {
+    Serial.println("ERROR:Speed must be between 5 and 200 ms");
+    return;
+  }
+
+  MOVE_SPEED = newSpeed;
+  Serial.print("OK:Movement speed set to ");
+  Serial.print(MOVE_SPEED);
+  Serial.println(" ms");
+}
 
 void processRecordStartCommand(String command) {
   // Format: RECORD_START:sequence_index:name

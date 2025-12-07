@@ -150,11 +150,16 @@ python arm_control_gui.py
    - **Place**: Actual placing position (gripper opens)
    - **Wave**: Friendly wave gesture (raises arm and waves left-right)
 
-4. **Safety Controls**:
+4. **Speed Control**:
+   - **Movement Speed**: Adjustable 5-200ms delay between steps
+   - **Real-time Adjustment**: Change speed without restarting
+   - **Default**: 15ms (optimized for smooth and fast movement)
+
+5. **Safety Controls**:
    - **Emergency Stop**: Immediately halts all movement
    - **Get Status**: Requests current position from Arduino
 
-5. **Status Display**:
+6. **Status Display**:
    - Real-time communication log
    - Error messages and feedback
 
@@ -168,6 +173,7 @@ J2:45      - Set joint 2 to 45 degrees
 HOME       - Move to home position
 FOLD       - Move all joints to minimum positions (assembly/storage)
 WAVE       - Perform friendly wave gesture
+SET_SPEED:15 - Set movement speed to 15ms (5-200ms range)
 STOP       - Emergency stop
 STATUS     - Request current positions
 ```
@@ -204,6 +210,15 @@ STATUS     # Verify folded position
 WAVE       # Perform friendly wave gesture
 STATUS     # Verify position after wave
 STOP       # Emergency stop (if needed)
+```
+
+**Speed Control:**
+```bash
+SET_SPEED:15  # Set fast/smooth movement (15ms delay)
+SET_SPEED:50  # Set normal movement (50ms delay)
+SET_SPEED:100 # Set slow/precise movement (100ms delay)
+SET_SPEED:5   # Error: too fast (minimum 5ms)
+SET_SPEED:250 # Error: too slow (maximum 200ms)
 ```
 
 ### Joint Limits Testing
@@ -311,18 +326,20 @@ LIST_SEQUENCES
 ## Benchmark Results
 
 ### Arduino Uno (Final Optimized)
-- **Flash Usage**: 27% (8822/32256 bytes)
-- **RAM Usage**: 74% (1525/2048 bytes)
+- **Flash Usage**: 29% (9500/32256 bytes)
+- **RAM Usage**: 81% (1675/2048 bytes)
 - **Status**: ✅ Excellent performance, reliable system
-- **Movement Speed**: 25ms intervals (fast and smooth)
+- **Movement Speed**: Configurable 5-200ms (default 15ms - very smooth & fast)
 - **Sequences**: 2 sequences × 15 waypoints each
+- **Commands**: HOME, FOLD, WAVE, SET_SPEED, full sequence control
 
 ### Arduino Mega (Final Optimized)
-- **Flash Usage**: 3% (9982/253952 bytes)
-- **RAM Usage**: 19% (1636/8192 bytes)
+- **Flash Usage**: 4% (10660/253952 bytes)
+- **RAM Usage**: 21% (1786/8192 bytes)
 - **Status**: ✅ Perfect performance, highly recommended
-- **Movement Speed**: 25ms intervals (optimal smoothness)
+- **Movement Speed**: Configurable 5-200ms (default 15ms - very smooth & fast)
 - **Sequences**: 2 sequences × 15 waypoints each
+- **Commands**: HOME, FOLD, WAVE, SET_SPEED, full sequence control
 
 ## Safety Features
 
@@ -379,10 +396,24 @@ const int JOINT_MAX[6] = {180, 150, 180, 180, 180, 180};
 
 ### Movement Speed
 
-Adjust `MOVE_SPEED` in the Arduino code to change movement speed:
+Movement speed is now configurable via serial commands or GUI:
 
+**Via Serial Commands:**
+```bash
+SET_SPEED:15   # Fast and smooth (default)
+SET_SPEED:50   # Normal speed
+SET_SPEED:100  # Slow and precise
+SET_SPEED:5    # Very fast (minimum 5ms)
+SET_SPEED:250  # Error: too slow (maximum 200ms)
+```
+
+**Via GUI:**
+- Use the speed control spinbox (5-200ms range)
+- Click "Set Speed" to apply changes immediately
+
+**Arduino Code (Default):**
 ```cpp
-const int MOVE_SPEED = 50;  // Delay in ms between movement steps
+int MOVE_SPEED = 15;  // Configurable variable (was const)
 ```
 
 ### Preset Positions

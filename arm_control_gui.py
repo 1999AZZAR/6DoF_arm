@@ -179,6 +179,25 @@ class ArmControlGUI(QMainWindow):
         conn_layout.addLayout(port_layout)
         layout.addWidget(conn_group)
 
+        # Speed control
+        speed_group = QGroupBox("Movement Speed")
+        speed_layout = QHBoxLayout(speed_group)
+
+        speed_layout.addWidget(QLabel("Speed (ms):"))
+
+        self.speed_spinbox = QSpinBox()
+        self.speed_spinbox.setRange(5, 200)
+        self.speed_spinbox.setValue(15)
+        self.speed_spinbox.setSuffix(" ms")
+        self.speed_spinbox.valueChanged.connect(self.on_speed_changed)
+        speed_layout.addWidget(self.speed_spinbox)
+
+        self.set_speed_btn = QPushButton("Set Speed")
+        self.set_speed_btn.clicked.connect(self.set_movement_speed)
+        speed_layout.addWidget(self.set_speed_btn)
+
+        layout.addWidget(speed_group)
+
         # Preset positions
         preset_group = QGroupBox("Preset Positions")
         preset_layout = QGridLayout(preset_group)
@@ -338,6 +357,19 @@ class ArmControlGUI(QMainWindow):
         self.joint_value_labels[joint_index].setText(f"{value}°")
         self.send_joint_command(joint_index + 1, value)
 
+    def on_speed_changed(self, value):
+        """Handle speed spinbox changes"""
+        # Could auto-set speed here, but we'll use the button for explicit setting
+        pass
+
+    def set_movement_speed(self):
+        """Set the movement speed on Arduino"""
+        if self.serial_worker:
+            speed = self.speed_spinbox.value()
+            command = f"SET_SPEED:{speed}"
+            self.serial_worker.send_command(command)
+            self.add_status_message(f"Set movement speed to {speed}ms")
+
     def send_joint_command(self, joint_num, angle):
         """Send joint position command"""
         if self.serial_worker:
@@ -373,14 +405,8 @@ class ArmControlGUI(QMainWindow):
                     self.serial_worker.send_command(cmd)
                     time.sleep(0.1)
                 self.add_status_message("Sent: Place sequence")
-            elif preset == "WAVE":
-                # Fun wave motion
-                commands = ["J4:60", "J4:120", "J4:60", "J4:120", "J4:90"]
-                for cmd in commands:
-                    self.serial_worker.send_command(cmd)
-                    time.sleep(0.5)
-                self.add_status_message("Sent: Wave sequence")
             else:
+                # Use Arduino's built-in commands for HOME, FOLD, WAVE
                 self.serial_worker.send_command(preset)
                 self.add_status_message(f"Sent: {preset}")
 

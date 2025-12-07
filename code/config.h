@@ -28,8 +28,8 @@ const int JOINT_MAX[6] = {180, 150, 180, 180, 180, 180};
 // Default home position
 const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 
-// Movement speed (delay in ms between steps)
-#define MOVE_SPEED 25
+// Movement speed (delay in ms between steps) - now configurable in code.ino
+// #define MOVE_SPEED 15  // Moved to code.ino as configurable variable
 
 // Serial communication settings
 #define SERIAL_BAUD_RATE 115200
@@ -41,6 +41,7 @@ const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 #define CMD_STATUS "STATUS"
 #define CMD_FOLD "FOLD"
 #define CMD_WAVE "WAVE"
+#define CMD_SET_SPEED "SET_SPEED"
 #define CMD_RECORD_START "RECORD_START"
 #define CMD_RECORD_STOP "RECORD_STOP"
 #define CMD_PLAY_SEQUENCE "PLAY_SEQUENCE"
