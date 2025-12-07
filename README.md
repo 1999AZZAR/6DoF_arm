@@ -2,8 +2,11 @@
 
 A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI interface for easy control and monitoring.
 
+🚀 **[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
+
 ## Table of Contents
 
+- [Interactive Demo](#interactive-demo)
 - [Features](#features)
 - [Hardware Requirements](#hardware-requirements)
 - [Software Requirements](#software-requirements)
@@ -74,6 +77,16 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
    ```bash
    pip install -r requirements.txt
    ```
+
+## Interactive Demo
+
+🚀 **Try it online first!** - No hardware required
+
+Experience the 6DOF Robot Arm in your browser:
+- [**Wokwi Online Simulator**](https://wokwi.com/projects/449667336179085313)
+- Test all commands in real-time
+- See servo movements visually
+- Perfect for learning and testing
 
 ## Project Structure
 
