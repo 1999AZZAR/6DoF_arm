@@ -1,6 +1,7 @@
 /*
  * 6DOF Robot Arm Configuration
  * Header file containing all configuration constants and pin definitions
+ * Optimized for Arduino Uno and Mega compatibility
  */
 
 #ifndef CONFIG_H
@@ -21,13 +22,13 @@ const int SERVO_PINS[6] = {
 };
 
 // Potentiometer pin assignments (for teaching mode)
-// Note: Using only A0-A5 for compatibility with Uno R4
+// Note: A6-A7 used to keep A4-A5 free for I2C (SDA/SCL)
 #define POT_PIN_1 A0   // Base rotation potentiometer
 #define POT_PIN_2 A1   // Shoulder potentiometer
 #define POT_PIN_3 A2   // Elbow potentiometer
 #define POT_PIN_4 A3   // Wrist rotation potentiometer
-#define POT_PIN_5 A4   // Wrist bend potentiometer
-#define POT_PIN_6 A5   // Gripper potentiometer
+#define POT_PIN_5 A6   // Wrist bend potentiometer (A6 available on Uno/Mega)
+#define POT_PIN_6 A7   // Gripper potentiometer (A7 available on Uno/Mega)
 
 // Potentiometer pin array for easy access
 const int POT_PINS[6] = {

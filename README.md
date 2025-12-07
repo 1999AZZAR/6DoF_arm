@@ -46,11 +46,13 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 
 ## Hardware Requirements
 
-- **Arduino Uno** or **Arduino Mega** (recommended)
+- **Arduino Uno** or **Arduino Mega** (recommended - AVR-based)
 - 6DOF Robot Arm with servo motors
 - USB cable for serial communication
 - Servo motors connected to pins 4, 5, 6, 7, 8, 9 (both boards)
-- Optional: Potentiometers on A0-A5 for teaching mode (Arduino Uno/Mega compatible)
+- **A4-A5 reserved for I2C** (SDA/SCL) for future expansion
+- Optional: Potentiometers on A0-A3, A6-A7 for teaching mode
+- **Note**: A6-A7 only available on AVR-based boards (Uno, Mega, Nano)
 
 ## Software Requirements
 
@@ -110,6 +112,15 @@ The Arduino code (`code/code.ino` and `code/config.h`) provides:
 - Joint 4 (Wrist Rotation): Pin 6
 - Joint 5 (Wrist Bend): Pin 5
 - Joint 6 (Gripper): Pin 4
+
+**Teaching Mode Potentiometers** (Optional):
+- Pot 1 (Base): A0
+- Pot 2 (Shoulder): A1
+- Pot 3 (Elbow): A2
+- Pot 4 (Wrist Rotation): A3
+- Pot 5 (Wrist Bend): A6
+- Pot 6 (Gripper): A7
+- **A4-A5: Reserved for I2C**
 
 ### Python GUI
 
@@ -204,6 +215,7 @@ For more intuitive programming, you can physically move the robot arm to "teach"
 
 #### Hardware Setup:
 - Connect potentiometers to each joint: `A0, A1, A2, A3, A6, A7`
+- **A4-A5 are reserved for I2C** (don't connect potentiometers there)
 - Potentiometers should be mechanically linked to joint positions
 - Calibration: Ensure pot range (0-1023) maps to joint range (min-max)
 
