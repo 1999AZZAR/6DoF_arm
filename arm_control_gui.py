@@ -205,10 +205,6 @@ class ArmControlGUI(QMainWindow):
         presets = [
             ("Home", "HOME"),
             ("Fold", "FOLD"),
-            ("Pick Ready", "PICK_READY"),
-            ("Pick", "PICK"),
-            ("Place Ready", "PLACE_READY"),
-            ("Place", "PLACE"),
             ("Wave", "WAVE")
         ]
 
@@ -380,35 +376,9 @@ class ArmControlGUI(QMainWindow):
     def send_preset_command(self, preset):
         """Send preset position command"""
         if self.serial_worker:
-            if preset == "PICK_READY":
-                # Custom pick ready position
-                commands = ["J1:90", "J2:100", "J3:80", "J4:90", "J5:90", "J6:152"]
-                for cmd in commands:
-                    self.serial_worker.send_command(cmd)
-                    time.sleep(0.1)  # Small delay between commands
-                self.add_status_message("Sent: Pick Ready sequence")
-            elif preset == "PICK":
-                commands = ["J1:90", "J2:120", "J3:100", "J4:90", "J5:90", "J6:120"]
-                for cmd in commands:
-                    self.serial_worker.send_command(cmd)
-                    time.sleep(0.1)
-                self.add_status_message("Sent: Pick sequence")
-            elif preset == "PLACE_READY":
-                commands = ["J1:45", "J2:80", "J3:60", "J4:135", "J5:90", "J6:152"]
-                for cmd in commands:
-                    self.serial_worker.send_command(cmd)
-                    time.sleep(0.1)
-                self.add_status_message("Sent: Place Ready sequence")
-            elif preset == "PLACE":
-                commands = ["J1:45", "J2:100", "J3:80", "J4:135", "J5:90", "J6:152"]
-                for cmd in commands:
-                    self.serial_worker.send_command(cmd)
-                    time.sleep(0.1)
-                self.add_status_message("Sent: Place sequence")
-            else:
-                # Use Arduino's built-in commands for HOME, FOLD, WAVE
-                self.serial_worker.send_command(preset)
-                self.add_status_message(f"Sent: {preset}")
+            # Send Arduino's built-in commands
+            self.serial_worker.send_command(preset)
+            self.add_status_message(f"Sent: {preset}")
 
     def emergency_stop(self):
         """Send emergency stop command"""

@@ -149,10 +149,6 @@ python arm_control_gui.py
 4. **Preset Positions**:
    - **Home**: Default safe position
    - **Fold**: Move all joints to minimum positions (assembly/storage)
-   - **Pick Ready**: Position for picking objects
-   - **Pick**: Actual picking position (gripper closes)
-   - **Place Ready**: Position for placing objects
-   - **Place**: Actual placing position (gripper opens)
    - **Wave**: Friendly wave gesture (raises arm and waves left-right)
 
 5. **Safety Controls**:
