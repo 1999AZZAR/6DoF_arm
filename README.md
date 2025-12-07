@@ -39,15 +39,18 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 - **Safety Features**: Joint limits validation, emergency stop, movement validation
 - **Preset Positions**: Pre-programmed positions for common tasks (Home, Pick, Place, Wave)
 - **Planning Sets**: Record, save, load, and playback movement sequences
+- **Teaching Mode**: Learn movements by physically moving the arm
 - **Visual Feedback**: Real-time position display and status monitoring
 - **Modern GUI**: Clean Qt6 interface with dark theme
+- **Optimized Codebase**: Focused on Arduino Uno and Mega compatibility
 
 ## Hardware Requirements
 
-- Arduino Nano (or compatible)
+- **Arduino Uno** or **Arduino Mega** (recommended)
 - 6DOF Robot Arm with servo motors
 - USB cable for serial communication
-- Servo motors connected to pins 4, 5, 6, 7, 8, 9
+- Servo motors connected to pins 4, 5, 6, 7, 8, 9 (both boards)
+- Optional: Potentiometers on A0-A5 for teaching mode (Arduino Uno/Mega compatible)
 
 ## Software Requirements
 
@@ -60,9 +63,13 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 
 1. **Arduino Setup**:
    ```bash
-   # Copy the 'code' folder to your Arduino sketches directory
-   # Open code/code.ino in Arduino IDE
-   # Upload to your Arduino Nano
+   # For Arduino Uno:
+   arduino-cli compile --fqbn arduino:avr:uno --build-path ../build_uno .
+   arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:uno .
+
+   # For Arduino Mega:
+   arduino-cli compile --fqbn arduino:avr:mega --build-path ../build_mega .
+   arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:mega .
    ```
 
 2. **Python Dependencies**:
@@ -76,7 +83,7 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 6DoF_arm/
 ├── .git/                    # Git repository
 ├── .gitignore              # Git ignore rules
-├── code/                    # Arduino project folder
+├── code/                    # Arduino project folder (Uno/Mega compatible)
 │   ├── code.ino            # Main Arduino sketch
 │   └── config.h            # Configuration header file
 ├── arm_control_gui.py      # Python Qt6 GUI application
@@ -158,6 +165,20 @@ OK:J1:90,J2:45,J3:0,J4:108,J5:80,J6:152    - Current positions
 ERROR:Joint limit exceeded                       - Error message
 ERROR:Invalid command                           - Command error
 ```
+
+## Benchmark Results
+
+### Arduino Uno
+- **Flash Usage**: 30% (9750/32256 bytes)
+- **RAM Usage**: 77% (1578/2048 bytes)
+- **Status**: ✅ Functional but memory-constrained
+- **Sequences**: 2 sequences × 15 waypoints each
+
+### Arduino Mega
+- **Flash Usage**: 4% (10928/253952 bytes)
+- **RAM Usage**: 20% (1689/8192 bytes)
+- **Status**: ✅ Excellent performance, recommended
+- **Sequences**: 2 sequences × 15 waypoints each
 
 ## Safety Features
 
@@ -252,23 +273,23 @@ Modify the `send_preset_command` method in the Python code to customize preset p
 
 ### Connection Issues
 
-1. Check that Arduino is connected and visible in device manager
-2. Verify correct COM port selection
+1. Check that Arduino Uno/Mega is connected (`arduino-cli board list`)
+2. Verify correct port selection (typically `/dev/ttyACM0` or `/dev/ttyUSB0`)
 3. Ensure Arduino code is uploaded and running
 4. Check serial baud rate (115200)
 
 ### Movement Issues
 
-1. Verify servo connections match pin definitions
-2. Check servo power supply (adequate current)
+1. Verify servo connections: pins 4,5,6,7,8,9 on both Uno and Mega
+2. Check servo power supply (adequate current for 6 servos)
 3. Confirm joint limits are appropriate for your arm
 4. Test individual joints with manual commands
 
 ### GUI Issues
 
-1. Ensure all Python dependencies are installed
+1. Ensure PyQt6 and pyserial are installed
 2. Check Python version (3.8+ required)
-3. Run from command line to see error messages
+3. Run GUI with proper display (not headless)
 
 ## Development
 
@@ -280,9 +301,10 @@ Modify the `send_preset_command` method in the Python code to customize preset p
 
 ### Code Structure
 
-- **Arduino**: Modular functions for each operation
+- **Arduino**: Modular functions optimized for Uno/Mega
 - **Python**: Object-oriented Qt6 application with threading
 - **Communication**: Simple text protocol for reliability
+- **Compatibility**: Tested and optimized for Arduino Uno and Mega
 
 ## License
 
