@@ -141,7 +141,12 @@ python arm_control_gui.py
    - Real-time position display
    - Joint limits enforced automatically
 
-3. **Preset Positions**:
+3. **Speed Control**:
+   - **Movement Speed**: Configurable 5-200ms delay between steps
+   - **Real-time Adjustment**: Change speed without restarting Arduino
+   - **Default**: 15ms (optimized for smooth and fast movement)
+
+4. **Preset Positions**:
    - **Home**: Default safe position
    - **Fold**: Move all joints to minimum positions (assembly/storage)
    - **Pick Ready**: Position for picking objects
@@ -149,11 +154,6 @@ python arm_control_gui.py
    - **Place Ready**: Position for placing objects
    - **Place**: Actual placing position (gripper opens)
    - **Wave**: Friendly wave gesture (raises arm and waves left-right)
-
-4. **Speed Control**:
-   - **Movement Speed**: Adjustable 5-200ms delay between steps
-   - **Real-time Adjustment**: Change speed without restarting
-   - **Default**: 15ms (optimized for smooth and fast movement)
 
 5. **Safety Controls**:
    - **Emergency Stop**: Immediately halts all movement
