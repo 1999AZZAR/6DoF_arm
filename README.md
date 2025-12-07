@@ -177,6 +177,7 @@ WAVE_SEQUENCE    - Greeting wave motion
 INSPECT_SEQUENCE - Pan left-right inspection
 DRAW_CIRCLE      - Draw circular pattern
 RESET_SEQUENCE   - Careful return to home
+FOLD             - Move to minimum positions (assembly/storage)
 ```
 
 ### Responses (Arduino → Python)
@@ -332,6 +333,8 @@ STATUS          # Check final position
 ```bash
 RESET_SEQUENCE   # Careful return to home
 STATUS          # Verify home position
+FOLD             # Move to minimum positions (assembly/storage)
+STATUS          # Verify folded position
 STOP            # Emergency stop (if needed)
 STATUS          # Check stopped position
 ```
@@ -366,6 +369,8 @@ DRAW_CIRCLE
 STATUS
 RESET_SEQUENCE
 STATUS
+FOLD
+STATUS
 
 # Test error conditions
 PICK_SEQUENCE
@@ -383,19 +388,19 @@ LIST_SEQUENCES
 
 ### Arduino Uno (Final Optimized)
 
-- **Flash Usage**: 35% (11572/32256 bytes)
-- **RAM Usage**: 92% (1890/2048 bytes, 158 bytes free)
+- **Flash Usage**: 36% (11784/32256 bytes)
+- **RAM Usage**: 97% (1998/2048 bytes, 50 bytes free)
 - **Status**: ✅ Excellent performance, reliable system
 - **Movement Speed**: 25ms intervals (fast and smooth)
-- **Sequences**: 2 user sequences × 15 waypoints + 6 prebuilt sequences
+- **Sequences**: 2 user sequences × 15 waypoints + 7 prebuilt sequences
 
 ### Arduino Mega (Final Optimized)
 
-- **Flash Usage**: 5% (12732/253952 bytes)
-- **RAM Usage**: 24% (2001/8192 bytes, 6191 bytes free)
+- **Flash Usage**: 5% (12944/253952 bytes)
+- **RAM Usage**: 25% (2109/8192 bytes, 6083 bytes free)
 - **Status**: ✅ Perfect performance, highly recommended
 - **Movement Speed**: 25ms intervals (optimal smoothness)
-- **Sequences**: 2 user sequences × 15 waypoints + 6 prebuilt sequences
+- **Sequences**: 2 user sequences × 15 waypoints + 7 prebuilt sequences
 
 ## Safety Features
 
@@ -472,6 +477,12 @@ The system includes several pre-programmed movement sequences for common robotic
 - **Command**: `RESET_SEQUENCE`
 - **Operation**: Slow, careful return to home position
 - **Use Case**: Safe reset after operations
+
+### Fold Sequence
+- **Command**: `FOLD`
+- **Operation**: Move all joints to their minimum positions
+- **Use Case**: Assembly preparation or robot storage/turn-down
+- **Joint Positions**: All joints move to JOINT_MIN values
 
 ### Sequence Characteristics
 

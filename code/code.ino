@@ -276,6 +276,16 @@ void processCommand(String command) {
       Serial.print(RESP_ERROR);
       Serial.println("Movement in progress, cannot start sequence");
     }
+  } else if (command == CMD_FOLD) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      foldArm();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
   } else {
     Serial.print("ERROR:Unknown command: ");
     Serial.println(command);
@@ -557,6 +567,17 @@ void playResetSequence() {
   }
   delay(500);
   Serial.println("OK:RESET_SEQUENCE completed");
+}
+
+void foldArm() {
+  Serial.println("OK:Starting FOLD - Moving to minimum positions");
+  // Move all joints to their minimum positions for assembly/storage
+  for (int i = 0; i < 6; i++) {
+    moveServo(i, JOINT_MIN[i]);
+    delay(150); // Slightly faster than reset for convenience
+  }
+  delay(300);
+  Serial.println("OK:FOLD completed - Arm in minimum position");
 }
 
 
