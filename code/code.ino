@@ -132,8 +132,8 @@ void setupHome() {
   }
 }
 
-// Fold all servos to minimum positions (assembly/storage position)
-void foldServos() {
+// Move all servos to minimum positions
+void minServos() {
   for (int i = 0; i < 6; i++) {
     Servo* servo;
     switch(i) {
@@ -146,6 +146,24 @@ void foldServos() {
     }
     servo->write(JOINT_MIN[i]);
     jointPositions[i] = JOINT_MIN[i];
+    delay(200); // Small delay for stable movement
+  }
+}
+
+// Move all servos to maximum positions
+void maxServos() {
+  for (int i = 0; i < 6; i++) {
+    Servo* servo;
+    switch(i) {
+      case 0: servo = &servo1; break;
+      case 1: servo = &servo2; break;
+      case 2: servo = &servo3; break;
+      case 3: servo = &servo4; break;
+      case 4: servo = &servo5; break;
+      case 5: servo = &servo6; break;
+    }
+    servo->write(JOINT_MAX[i]);
+    jointPositions[i] = JOINT_MAX[i];
     delay(200); // Small delay for stable movement
   }
 }
@@ -255,8 +273,11 @@ void processCommand(String command) {
     sendStatus();
   } else if (command == CMD_STATUS) {
     sendStatus();
-  } else if (command == CMD_FOLD) {
-    foldServos();
+  } else if (command == CMD_MIN) {
+    minServos();
+    sendStatus();
+  } else if (command == CMD_MAX) {
+    maxServos();
     sendStatus();
   } else if (command == CMD_WAVE) {
     waveServos();

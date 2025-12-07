@@ -148,7 +148,8 @@ python arm_control_gui.py
 
 4. **Preset Positions**:
    - **Home**: Default safe position
-   - **Fold**: Move all joints to minimum positions (assembly/storage)
+   - **Min**: Move all joints to minimum positions
+   - **Max**: Move all joints to maximum positions
    - **Wave**: Friendly wave gesture (raises arm and waves left-right)
 
 5. **Safety Controls**:
@@ -167,7 +168,8 @@ python arm_control_gui.py
 J1:90      - Set joint 1 to 90 degrees
 J2:45      - Set joint 2 to 45 degrees
 HOME       - Move to home position
-FOLD       - Move all joints to minimum positions (assembly/storage)
+MIN        - Move all joints to minimum positions
+MAX        - Move all joints to maximum positions
 WAVE       - Perform friendly wave gesture
 SET_SPEED:15 - Set movement speed to 15ms (5-200ms range)
 STOP       - Emergency stop
@@ -201,8 +203,10 @@ STATUS     # Check current positions
 ```bash
 HOME       # Move to home position (92,85,45,108,80,152)
 STATUS     # Verify home position
-FOLD       # Move to folded position (0,30,0,0,0,90)
-STATUS     # Verify folded position
+MIN        # Move to minimum positions (0,30,0,0,0,90)
+STATUS     # Verify minimum positions
+MAX        # Move to maximum positions (180,150,180,180,180,180)
+STATUS     # Verify maximum positions
 WAVE       # Perform friendly wave gesture
 STATUS     # Verify position after wave
 STOP       # Emergency stop (if needed)

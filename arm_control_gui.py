@@ -204,7 +204,8 @@ class ArmControlGUI(QMainWindow):
 
         presets = [
             ("Home", "HOME"),
-            ("Fold", "FOLD"),
+            ("Min", "MIN"),
+            ("Max", "MAX"),
             ("Wave", "WAVE")
         ]
 
