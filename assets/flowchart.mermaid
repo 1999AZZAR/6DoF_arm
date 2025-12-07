@@ -5,54 +5,54 @@ flowchart TD
 
         %% User Interface Layer
         subgraph "User Interface Layer"
-            UI[User Interface<br/>Python Qt6 GUI]
-            JointCtrl[Joint Control Panel<br/>6 Sliders J1-J6]
-            PresetCtrl[Preset Positions<br/>HOME, MIN, MAX, WAVE]
-            SpeedCtrl[Movement Speed Control<br/>5-200ms configurable]
-            SeqCtrl[Sequence Management<br/>Record/Play/Delete]
-            StatusMon[Status Monitor<br/>Real-time feedback]
-            ConnectCtrl[Connection Control<br/>Port selection & status]
+            UI["User Interface\nPython Qt6 GUI"]
+            JointCtrl["Joint Control Panel\n6 Sliders J1-J6"]
+            PresetCtrl["Preset Positions\nHOME, MIN, MAX, WAVE"]
+            SpeedCtrl["Movement Speed Control\n5-200ms configurable"]
+            SeqCtrl["Sequence Management\nRecord/Play/Delete"]
+            StatusMon["Status Monitor\nReal-time feedback"]
+            ConnectCtrl["Connection Control\nPort selection & status"]
         end
 
         %% Communication Layer
         subgraph "Communication Layer"
-            SerialProto[Serial Communication Protocol<br/>115200 baud, text-based]
-            CmdParser[Command Parser<br/>Validate & process commands]
-            RespHandler[Response Handler<br/>Format & send feedback]
+            SerialProto["Serial Communication Protocol\n115200 baud, text-based"]
+            CmdParser["Command Parser\nValidate & process commands"]
+            RespHandler["Response Handler\nFormat & send feedback"]
         end
 
         %% Arduino Control Layer
         subgraph "Arduino Control Layer"
-            MainLoop[Main Control Loop<br/>code.ino loop()]
-            CmdProcessor[Command Processor<br/>processCommand()]
-            SafetySys[Safety System<br/>Limit validation & emergency stop]
-            SeqMgr[Sequence Manager<br/>Record & playback sequences]
+            MainLoop["Main Control Loop\ncode.ino loop()"]
+            CmdProcessor["Command Processor\nprocessCommand()"]
+            SafetySys["Safety System\nLimit validation & emergency stop"]
+            SeqMgr["Sequence Manager\nRecord & playback sequences"]
         end
 
         %% Hardware Control Layer
         subgraph "Hardware Control Layer"
-            ServoCtrl[Servo Controller<br/>6 Servo motors]
-            Joint1[Joint 1 - Base<br/>Pin 9, 0-180°]
-            Joint2[Joint 2 - Shoulder<br/>Pin 8, 30-150°]
-            Joint3[Joint 3 - Elbow<br/>Pin 7, 0-180°]
-            Joint4[Joint 4 - Wrist Rotation<br/>Pin 6, 0-180°]
-            Joint5[Joint 5 - Wrist Bend<br/>Pin 5, 0-180°]
-            Joint6[Joint 6 - Gripper<br/>Pin 4, 90-180°]
+            ServoCtrl["Servo Controller\n6 Servo motors"]
+            Joint1["Joint 1 - Base\nPin 9, 0-180°"]
+            Joint2["Joint 2 - Shoulder\nPin 8, 30-150°"]
+            Joint3["Joint 3 - Elbow\nPin 7, 0-180°"]
+            Joint4["Joint 4 - Wrist Rotation\nPin 6, 0-180°"]
+            Joint5["Joint 5 - Wrist Bend\nPin 5, 0-180°"]
+            Joint6["Joint 6 - Gripper\nPin 4, 90-180°"]
         end
 
         %% Sequence Management Layer
         subgraph "Sequence Management Layer"
-            SeqRecord[Sequence Recording<br/>Capture joint positions]
-            SeqStorage[Sequence Storage<br/>RAM-based, 2 sequences × 15 points]
-            SeqPlayback[Sequence Playback<br/>Execute recorded movements]
-            SeqFileIO[Sequence File I/O<br/>Save/Load JSON files]
+            SeqRecord["Sequence Recording\nCapture joint positions"]
+            SeqStorage["Sequence Storage\nRAM-based, 2 sequences × 15 points"]
+            SeqPlayback["Sequence Playback\nExecute recorded movements"]
+            SeqFileIO["Sequence File I/O\nSave/Load JSON files"]
         end
 
         %% Data Storage Layer
         subgraph "Data Storage Layer"
-            JointPos[Joint Positions Array<br/>int jointPositions[6]]
-            ConfigData[Configuration Data<br/>Limits, home positions, pins]
-            SeqData[Sequence Data<br/>Struct arrays in RAM]
+            JointPos["Joint Positions Array\nint jointPositions[6]"]
+            ConfigData["Configuration Data\nLimits, home positions, pins"]
+            SeqData["Sequence Data\nStruct arrays in RAM"]
         end
     end
 
@@ -140,15 +140,15 @@ flowchart TD
     %% Detailed Command Processing Subflow
     subgraph "Command Processing Details"
         direction LR
-        CmdInput[Command Input<br/>String from Serial]
-        CmdValidate[Validate Command<br/>Check format & length]
-        CmdRoute[Route Command<br/>By command type]
-        JointCmd[Joint Commands<br/>J1:90, J2:45, etc.]
-        PresetCmd[Preset Commands<br/>HOME, MIN, MAX, WAVE]
-        SpeedCmd[Speed Commands<br/>SET_SPEED:15]
-        SeqCmd[Sequence Commands<br/>RECORD_START, PLAY_SEQUENCE]
-        SafetyCmd[Safety Commands<br/>STOP, STATUS]
-        InvalidCmd[Invalid Commands<br/>Unknown or malformed]
+        CmdInput["Command Input\nString from Serial"]
+        CmdValidate["Validate Command\nCheck format & length"]
+        CmdRoute["Route Command\nBy command type"]
+        JointCmd["Joint Commands\nJ1:90, J2:45, etc."]
+        PresetCmd["Preset Commands\nHOME, MIN, MAX, WAVE"]
+        SpeedCmd["Speed Commands\nSET_SPEED:15"]
+        SeqCmd["Sequence Commands\nRECORD_START, PLAY_SEQUENCE"]
+        SafetyCmd["Safety Commands\nSTOP, STATUS"]
+        InvalidCmd["Invalid Commands\nUnknown or malformed"]
 
         CmdInput --> CmdValidate
         CmdValidate --> CmdRoute
@@ -165,12 +165,12 @@ flowchart TD
     %% Joint Movement Subflow
     subgraph "Joint Movement Details"
         direction LR
-        TargetSet[Set Target Position<br/>Validate against limits]
-        CurrentRead[Read Current Position<br/>From jointPositions array]
-        DirectionCalc[Calculate Movement Direction<br/>Clockwise/Counter-clockwise]
-        StepMove[Step-by-Step Movement<br/>With configurable delay]
-        PositionUpdate[Update Position Array<br/>After movement complete]
-        FeedbackSend[Send Position Feedback<br/>Via serial response]
+        TargetSet["Set Target Position\nValidate against limits"]
+        CurrentRead["Read Current Position\nFrom jointPositions array"]
+        DirectionCalc["Calculate Movement Direction\nClockwise/Counter-clockwise"]
+        StepMove["Step-by-Step Movement\nWith configurable delay"]
+        PositionUpdate["Update Position Array\nAfter movement complete"]
+        FeedbackSend["Send Position Feedback\nVia serial response"]
 
         TargetSet --> CurrentRead
         CurrentRead --> DirectionCalc
@@ -184,11 +184,11 @@ flowchart TD
     %% Sequence Recording Subflow
     subgraph "Sequence Recording Details"
         direction LR
-        RecordStart[Start Recording<br/>RECORD_START:name]
-        PositionCapture[Capture Current Positions<br/>All 6 joints]
-        SequenceAdd[Add to Sequence Array<br/>Store joint positions]
-        RecordStop[Stop Recording<br/>RECORD_STOP]
-        SequenceSave[Save Sequence<br/>To memory slot]
+        RecordStart["Start Recording\nRECORD_START:name"]
+        PositionCapture["Capture Current Positions\nAll 6 joints"]
+        SequenceAdd["Add to Sequence Array\nStore joint positions"]
+        RecordStop["Stop Recording\nRECORD_STOP"]
+        SequenceSave["Save Sequence\nTo memory slot"]
 
         RecordStart --> PositionCapture
         PositionCapture --> SequenceAdd
@@ -201,11 +201,11 @@ flowchart TD
     %% Sequence Playback Subflow
     subgraph "Sequence Playback Details"
         direction LR
-        PlaybackStart[Start Playback<br/>PLAY_SEQUENCE:id]
-        SequenceLoad[Load Sequence Data<br/>From memory slot]
-        PointExecute[Execute Each Point<br/>Move to stored positions]
-        DelayApply[Apply Point Delay<br/>Timing control]
-        PlaybackComplete[Playback Complete<br/>Send completion status]
+        PlaybackStart["Start Playback\nPLAY_SEQUENCE:id"]
+        SequenceLoad["Load Sequence Data\nFrom memory slot"]
+        PointExecute["Execute Each Point\nMove to stored positions"]
+        DelayApply["Apply Point Delay\nTiming control"]
+        PlaybackComplete["Playback Complete\nSend completion status"]
 
         PlaybackStart --> SequenceLoad
         SequenceLoad --> PointExecute
@@ -218,11 +218,11 @@ flowchart TD
     %% Error Handling Subflow
     subgraph "Error Handling Details"
         direction LR
-        ErrorDetect[Error Detection<br/>Validation failures]
-        ErrorClassify[Error Classification<br/>Joint limit, invalid command, etc.]
-        ErrorResponse[Error Response<br/>Format error message]
-        ErrorLog[Error Logging<br/>Send via serial]
-        RecoveryAction[Recovery Action<br/>Stop movement, reset state]
+        ErrorDetect["Error Detection\nValidation failures"]
+        ErrorClassify["Error Classification\nJoint limit, invalid command, etc."]
+        ErrorResponse["Error Response\nFormat error message"]
+        ErrorLog["Error Logging\nSend via serial"]
+        RecoveryAction["Recovery Action\nStop movement, reset state"]
 
         ErrorDetect --> ErrorClassify
         ErrorClassify --> ErrorResponse
@@ -235,11 +235,11 @@ flowchart TD
     %% Configuration Details
     subgraph "System Configuration"
         direction TB
-        PinConfig[Pin Configuration<br/>SERVO_PINS[6] = {9,8,7,6,5,4}]
-        LimitConfig[Joint Limits<br/>JOINT_MIN/MAX arrays]
-        HomeConfig[Home Position<br/>HOME_POSITIONS[6] = {92,85,45,108,80,152}]
-        SpeedConfig[Movement Speed<br/>MOVE_SPEED = 15ms (configurable)]
-        SerialConfig[Serial Settings<br/>115200 baud, 100 char buffer]
+        PinConfig["Pin Configuration\nSERVO_PINS[6] = {9,8,7,6,5,4}"]
+        LimitConfig["Joint Limits\nJOINT_MIN/MAX arrays"]
+        HomeConfig["Home Position\nHOME_POSITIONS[6] = {92,85,45,108,80,152}"]
+        SpeedConfig["Movement Speed\nMOVE_SPEED = 15ms (configurable)"]
+        SerialConfig["Serial Settings\n115200 baud, 100 char buffer"]
 
         PinConfig --> ServoCtrl
         LimitConfig --> SafetySys
@@ -251,11 +251,11 @@ flowchart TD
     %% Performance Optimization Notes
     subgraph "Performance Optimizations"
         direction LR
-        MemoryOpt[Memory Optimization<br/>Reduced sequence limits for Uno]
-        SpeedOpt[Movement Speed Control<br/>Configurable delay 5-200ms]
-        BlockingMove[Blocking Movement<br/>Reliable step-by-step control]
-        BufferOpt[Buffer Optimization<br/>100 char serial buffer]
-        ValidationOpt[Validation Optimization<br/>Fast limit checking]
+        MemoryOpt["Memory Optimization\nReduced sequence limits for Uno"]
+        SpeedOpt["Movement Speed Control\nConfigurable delay 5-200ms"]
+        BlockingMove["Blocking Movement\nReliable step-by-step control"]
+        BufferOpt["Buffer Optimization\n100 char serial buffer"]
+        ValidationOpt["Validation Optimization\nFast limit checking"]
 
         MemoryOpt --> SeqStorage
         SpeedOpt --> ServoCtrl
