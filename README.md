@@ -2,7 +2,7 @@
 
 A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI interface for easy control and monitoring.
 
-🚀 **[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
+**[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
 
 ## Table of Contents
 
@@ -40,11 +40,24 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 - **Serial Communication**: Simple text-based protocol for reliable communication
 - **Real-time Control**: Live joint position control with sliders
 - **Safety Features**: Joint limits validation, emergency stop, movement validation
-- **Preset Positions**: Pre-programmed positions for common tasks (Home, Pick, Place, Wave)
-- **Planning Sets**: Record, save, load, and playback movement sequences
+- **Preset Positions**: Pre-programmed positions for common tasks (Home, Min, Max, Wave)
+- **Sequence Management**: Record, save, load, and playback movement sequences
 - **Visual Feedback**: Real-time position display and status monitoring
-- **Modern GUI**: Clean Qt6 interface with dark theme
+- **GUI Interface**: Clean Qt6 interface
 - **Optimized Codebase**: Focused on Arduino Uno and Mega compatibility
+
+## System Architecture
+
+![System Architecture Flowchart](assets/render.png)
+*Complete system architecture showing all components and data flows*
+
+### Hardware Assembly
+![Robot Arm Assembly](assets/arm_assambler.jpg)
+*Complete 6DOF robot arm assembly showing servo motor connections and mechanical structure*
+
+### Component Layout
+![Robot Arm Components](assets/arm_component.jpg)
+*Detailed view of robot arm components and joint configurations*
 
 ## Hardware Requirements
 
@@ -88,17 +101,6 @@ Experience the 6DOF Robot Arm in your browser:
 - See servo movements visually
 - Perfect for learning and testing
 
-## System Overview
-
-### Hardware Assembly
-![Robot Arm Assembly](assets/arm_assambler.jpg)
-*Complete 6DOF robot arm assembly showing servo motor connections and mechanical structure*
-
-### Component Layout
-![Robot Arm Components](assets/arm_component.jpg)
-*Detailed view of robot arm components and joint configurations*
-
-### System Architecture
 The system consists of layered architecture for reliable control:
 
 **User Interface Layer** → **Communication Layer** → **Control Layer** → **Hardware Layer**
@@ -159,19 +161,19 @@ python arm_control_gui.py
    - Joint limits enforced automatically
 
 3. **Speed Control**:
-   - **Movement Speed**: Configurable 5-200ms delay between steps
-   - **Real-time Adjustment**: Change speed without restarting Arduino
-   - **Default**: 15ms (optimized for smooth and fast movement)
+   - Movement Speed: Configurable 5-200ms delay between steps
+   - Real-time Adjustment: Change speed without restarting Arduino
+   - Default: 15ms (optimized for smooth and fast movement)
 
 4. **Preset Positions**:
-   - **Home**: Default safe position
-   - **Min**: Move all joints to minimum positions
-   - **Max**: Move all joints to maximum positions
-   - **Wave**: Friendly wave gesture (raises arm and waves left-right)
+   - Home: Default safe position
+   - Min: Move all joints to minimum positions
+   - Max: Move all joints to maximum positions
+   - Wave: Friendly wave gesture (raises arm and waves left-right)
 
 5. **Safety Controls**:
-   - **Emergency Stop**: Immediately halts all movement
-   - **Get Status**: Requests current position from Arduino
+   - Emergency Stop: Immediately halts all movement
+   - Get Status: Requests current position from Arduino
 
 6. **Status Display**:
    - Real-time communication log
@@ -365,9 +367,9 @@ LIST_SEQUENCES
 - **Validation**: Commands are validated before execution
 - **Movement Interruption**: Emergency stop can interrupt ongoing movements
 
-## Planning Sets
+## Sequence Management
 
-The system supports creating and managing movement sequences (Planning Sets) for automated operations:
+The system supports creating and managing movement sequences for automated operations:
 
 ### Recording Sequences
 
@@ -470,6 +472,11 @@ Modify the `send_preset_command` method in the Python code to customize preset p
   - Hardware control sequences
   - Safety and validation systems
   - Sequence management operations
+
+- **Rendered Flowchart**: [View rendered flowchart diagram](assets/render.png)
+  - Visual representation of system architecture
+  - Component relationships and data flows
+  - Hierarchical organization of system layers
 
 ### Adding New Features
 
