@@ -185,6 +185,7 @@ class ArmControlGUI(QMainWindow):
 
         presets = [
             ("Home", "HOME"),
+            ("Fold", "FOLD"),
             ("Pick Ready", "PICK_READY"),
             ("Pick", "PICK"),
             ("Place Ready", "PLACE_READY"),

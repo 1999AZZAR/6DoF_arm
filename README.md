@@ -2,7 +2,7 @@
 
 A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI interface for easy control and monitoring.
 
-**[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
+🚀 **[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
 
 ## Table of Contents
 
@@ -63,7 +63,6 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 ## Installation
 
 1. **Arduino Setup**:
-
    ```bash
    # For Arduino Uno:
    arduino-cli compile --fqbn arduino:avr:uno --build-path ../build_uno .
@@ -73,8 +72,8 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
    arduino-cli compile --fqbn arduino:avr:mega --build-path ../build_mega .
    arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:mega .
    ```
-2. **Python Dependencies**:
 
+2. **Python Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
@@ -84,7 +83,6 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 🚀 **Try it online first!** - No hardware required
 
 Experience the 6DOF Robot Arm in your browser:
-
 - [**Wokwi Online Simulator**](https://wokwi.com/projects/449667336179085313)
 - Test all commands in real-time
 - See servo movements visually
@@ -117,7 +115,6 @@ The Arduino code (`code/code.ino` and `code/config.h`) provides:
 - Real-time position feedback
 
 **Joint Pin Mapping**:
-
 - Joint 1 (Base): Pin 9
 - Joint 2 (Shoulder): Pin 8
 - Joint 3 (Elbow): Pin 7
@@ -136,28 +133,28 @@ python arm_control_gui.py
 **GUI Features**:
 
 1. **Connection Panel**:
-
    - Select serial port from dropdown
    - Connect/Disconnect button
-2. **Joint Control**:
 
+2. **Joint Control**:
    - 6 sliders for individual joint control (J1-J6)
    - Real-time position display
    - Joint limits enforced automatically
-3. **Preset Positions**:
 
+3. **Preset Positions**:
    - **Home**: Default safe position
+   - **Fold**: Move all joints to minimum positions (assembly/storage)
    - **Pick Ready**: Position for picking objects
    - **Pick**: Actual picking position (gripper closes)
    - **Place Ready**: Position for placing objects
    - **Place**: Actual placing position (gripper opens)
    - **Wave**: Fun demonstration sequence
-4. **Safety Controls**:
 
+4. **Safety Controls**:
    - **Emergency Stop**: Immediately halts all movement
    - **Get Status**: Requests current position from Arduino
-5. **Status Display**:
 
+5. **Status Display**:
    - Real-time communication log
    - Error messages and feedback
 
@@ -169,15 +166,9 @@ python arm_control_gui.py
 J1:90      - Set joint 1 to 90 degrees
 J2:45      - Set joint 2 to 45 degrees
 HOME       - Move to home position
+FOLD       - Move all joints to minimum positions (assembly/storage)
 STOP       - Emergency stop
 STATUS     - Request current positions
-PICK_SEQUENCE    - Automated pick operation
-PLACE_SEQUENCE   - Automated place operation
-WAVE_SEQUENCE    - Greeting wave motion
-INSPECT_SEQUENCE - Pan left-right inspection
-DRAW_CIRCLE      - Draw circular pattern
-RESET_SEQUENCE   - Careful return to home
-FOLD             - Move to minimum positions (assembly/storage)
 ```
 
 ### Responses (Arduino → Python)
@@ -204,17 +195,17 @@ STATUS     # Check current positions
 ```
 
 **Position Commands:**
-
 ```bash
 HOME       # Move to home position (92,85,45,108,80,152)
 STATUS     # Verify home position
+FOLD       # Move to folded position (0,30,0,0,0,90)
+STATUS     # Verify folded position
 STOP       # Emergency stop (if needed)
 ```
 
 ### Joint Limits Testing
 
 **Valid Ranges:**
-
 ```bash
 J1:0       # Base minimum
 J1:180     # Base maximum
@@ -225,7 +216,6 @@ J3:180     # Elbow maximum
 ```
 
 **Error Testing:**
-
 ```bash
 J1:200     # Should give error (over 180°)
 J2:10      # Should give error (under 30°)
@@ -236,7 +226,6 @@ J7:90      # Should give error (invalid joint)
 ### Sequence Commands
 
 **Recording Sequences:**
-
 ```bash
 RECORD_START:0:PickSequence   # Start recording sequence 0
 J1:45                         # Record base movement
@@ -248,14 +237,12 @@ LIST_SEQUENCES               # Verify sequence saved
 ```
 
 **Playing Sequences:**
-
 ```bash
 PLAY_SEQUENCE:0              # Play recorded sequence
 STATUS                       # Check final position
 ```
 
 **Sequence Management:**
-
 ```bash
 LIST_SEQUENCES               # Show all sequences
 DELETE_SEQUENCE:0            # Delete sequence 0
@@ -288,6 +275,10 @@ STATUS
 HOME
 STATUS
 
+# Test fold command
+FOLD
+STATUS
+
 # Test emergency stop
 J1:180
 STOP
@@ -308,99 +299,23 @@ STATUS
 # Clean up
 DELETE_SEQUENCE:0
 LIST_SEQUENCES
-
-### Prebuilt Sequence Testing
-
-**Pick and Place Operations:**
-```bash
-PICK_SEQUENCE    # Automated pick operation
-STATUS          # Check final position
-PLACE_SEQUENCE   # Automated place operation
-STATUS          # Check final position
-```
-
-**Demonstration Sequences:**
-```bash
-WAVE_SEQUENCE    # Greeting wave motion
-STATUS          # Check final position
-INSPECT_SEQUENCE # Pan inspection motion
-STATUS          # Check final position
-DRAW_CIRCLE     # Circular drawing pattern
-STATUS          # Check final position
-```
-
-**Safety Sequences:**
-```bash
-RESET_SEQUENCE   # Careful return to home
-STATUS          # Verify home position
-FOLD             # Move to minimum positions (assembly/storage)
-STATUS          # Verify folded position
-STOP            # Emergency stop (if needed)
-STATUS          # Check stopped position
-```
-
-### Movement Conflict Testing
-
-**Error Testing:**
-```bash
-PICK_SEQUENCE
-WAVE_SEQUENCE    # Should give error (movement in progress)
-STOP            # Emergency stop to clear
-STATUS          # Check position
-```
-
-### Complete Prebuilt Test Sequence
-
-```bash
-# Initial setup
-STATUS
-HOME
-
-# Test all prebuilt sequences
-PICK_SEQUENCE
-STATUS
-PLACE_SEQUENCE
-STATUS
-WAVE_SEQUENCE
-STATUS
-INSPECT_SEQUENCE
-STATUS
-DRAW_CIRCLE
-STATUS
-RESET_SEQUENCE
-STATUS
-FOLD
-STATUS
-
-# Test error conditions
-PICK_SEQUENCE
-WAVE_SEQUENCE    # Should error
-STOP            # Clear movement
-STATUS          # Final check
-```
-
-# Clean up
-DELETE_SEQUENCE:0
-LIST_SEQUENCES
 ```
 
 ## Benchmark Results
 
 ### Arduino Uno (Final Optimized)
-
-- **Flash Usage**: 36% (11784/32256 bytes)
-- **RAM Usage**: 97% (1998/2048 bytes, 50 bytes free)
+- **Flash Usage**: 27% (8822/32256 bytes)
+- **RAM Usage**: 74% (1525/2048 bytes)
 - **Status**: ✅ Excellent performance, reliable system
 - **Movement Speed**: 25ms intervals (fast and smooth)
-- **Sequences**: 2 user sequences × 15 waypoints + 7 prebuilt sequences
+- **Sequences**: 2 sequences × 15 waypoints each
 
 ### Arduino Mega (Final Optimized)
-
-- **Flash Usage**: 5% (12944/253952 bytes)
-- **RAM Usage**: 25% (2109/8192 bytes, 6083 bytes free)
+- **Flash Usage**: 3% (9982/253952 bytes)
+- **RAM Usage**: 19% (1636/8192 bytes)
 - **Status**: ✅ Perfect performance, highly recommended
 - **Movement Speed**: 25ms intervals (optimal smoothness)
-- **Sequences**: 2 user sequences × 15 waypoints + 7 prebuilt sequences
+- **Sequences**: 2 sequences × 15 waypoints each
 
 ## Safety Features
 
@@ -443,53 +358,6 @@ DELETE_SEQUENCE:sequence_index     - Delete sequence
 - **Capacity**: Up to 2 sequences in Arduino memory
 - **Length**: Each sequence can have up to 50 waypoints
 - **Persistence**: Sequences are stored in RAM (lost on power cycle)
-
-## Prebuilt Movement Sequences
-
-The system includes several pre-programmed movement sequences for common robotic operations:
-
-### Pick Sequence
-- **Command**: `PICK_SEQUENCE`
-- **Operation**: Approaches object, closes gripper, lifts up
-- **Use Case**: Automated picking operations
-
-### Place Sequence
-- **Command**: `PLACE_SEQUENCE`
-- **Operation**: Moves to position, lowers down, opens gripper, lifts up
-- **Use Case**: Automated placing operations
-
-### Wave Sequence
-- **Command**: `WAVE_SEQUENCE`
-- **Operation**: Raises arm and waves left-right 3 times
-- **Use Case**: Greeting or demonstration motions
-
-### Inspect Sequence
-- **Command**: `INSPECT_SEQUENCE`
-- **Operation**: Pans base from left to right and back
-- **Use Case**: Area scanning or inspection
-
-### Draw Circle
-- **Command**: `DRAW_CIRCLE`
-- **Operation**: Moves joints in circular pattern
-- **Use Case**: Drawing or tracing circular paths
-
-### Reset Sequence
-- **Command**: `RESET_SEQUENCE`
-- **Operation**: Slow, careful return to home position
-- **Use Case**: Safe reset after operations
-
-### Fold Sequence
-- **Command**: `FOLD`
-- **Operation**: Move all joints to their minimum positions
-- **Use Case**: Assembly preparation or robot storage/turn-down
-- **Joint Positions**: All joints move to JOINT_MIN values
-
-### Sequence Characteristics
-
-- **Blocking Operations**: Each sequence runs to completion
-- **Safety Integration**: All sequences respect emergency stop
-- **Movement Prevention**: Cannot start if another movement is active
-- **Status Updates**: Send position updates after completion
 
 ## Customization
 
