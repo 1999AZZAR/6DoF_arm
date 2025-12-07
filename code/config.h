@@ -21,12 +21,13 @@ const int SERVO_PINS[6] = {
 };
 
 // Potentiometer pin assignments (for teaching mode)
+// Note: Using only A0-A5 for compatibility with Uno R4
 #define POT_PIN_1 A0   // Base rotation potentiometer
 #define POT_PIN_2 A1   // Shoulder potentiometer
 #define POT_PIN_3 A2   // Elbow potentiometer
 #define POT_PIN_4 A3   // Wrist rotation potentiometer
-#define POT_PIN_5 A6   // Wrist bend potentiometer
-#define POT_PIN_6 A7   // Gripper potentiometer
+#define POT_PIN_5 A4   // Wrist bend potentiometer
+#define POT_PIN_6 A5   // Gripper potentiometer
 
 // Potentiometer pin array for easy access
 const int POT_PINS[6] = {

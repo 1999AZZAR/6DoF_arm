@@ -52,9 +52,9 @@ boolean movementInProgress = false;
 boolean teachingMode = false;
 int teachingSequenceIndex = -1;
 
-// Sequence management
-#define MAX_SEQUENCE_LENGTH 50
-#define MAX_SEQUENCES 5
+// Sequence management (optimized for Arduino Uno memory)
+#define MAX_SEQUENCE_LENGTH 15  // Reduced from 50 to fit in 2KB RAM
+#define MAX_SEQUENCES 2         // Reduced from 5 to fit in 2KB RAM
 #define SEQUENCE_NAME_LENGTH 16
 
 struct SequencePoint {
