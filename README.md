@@ -72,13 +72,15 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 
 ```
 6DoF_arm/
-├── code/                     # Arduino project folder
-│   ├── code.ino             # Main Arduino sketch
-│   └── config.h             # Configuration header file
-├── arm_control_gui.py       # Python Qt6 GUI application
-├── requirements.txt         # Python dependencies
-├── LICENSE                  # MIT License file
-└── README.md               # This documentation
+├── .git/                    # Git repository
+├── .gitignore              # Git ignore rules
+├── code/                    # Arduino project folder
+│   ├── code.ino            # Main Arduino sketch
+│   └── config.h            # Configuration header file
+├── arm_control_gui.py      # Python Qt6 GUI application
+├── requirements.txt        # Python dependencies
+├── LICENSE                 # MIT License file
+└── README.md              # This documentation
 ```
 
 ## Usage
