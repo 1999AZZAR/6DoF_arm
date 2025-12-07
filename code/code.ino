@@ -571,8 +571,22 @@ void playResetSequence() {
 
 void foldArm() {
   Serial.println("OK:Starting FOLD - Moving to minimum positions");
+
+  // Debug: Print joint minimum values
+  Serial.print("Joint mins: ");
+  for (int i = 0; i < 6; i++) {
+    Serial.print(JOINT_MIN[i]);
+    if (i < 5) Serial.print(",");
+  }
+  Serial.println();
+
   // Move all joints to their minimum positions for assembly/storage
   for (int i = 0; i < 6; i++) {
+    Serial.print("Moving joint ");
+    Serial.print(i + 1);
+    Serial.print(" to ");
+    Serial.println(JOINT_MIN[i]);
+
     moveServo(i, JOINT_MIN[i]);
     delay(150); // Slightly faster than reset for convenience
   }
