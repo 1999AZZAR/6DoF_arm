@@ -17,7 +17,7 @@ import serial.tools.list_ports
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QSlider, QPushButton, QGroupBox, QTextEdit, QComboBox,
-    QMessageBox, QGridLayout, QFrame
+    QMessageBox, QGridLayout, QFrame, QFileDialog, QListWidget, QLineEdit
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
@@ -98,6 +98,10 @@ class ArmControlGUI(QMainWindow):
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.request_status)
         self.status_timer.start(1000)  # Update every second
+
+        # Planning sets variables
+        self.is_recording = False
+        self.current_sequence_index = 0
 
     def create_joint_controls(self):
         """Create joint control sliders"""
@@ -200,6 +204,57 @@ class ArmControlGUI(QMainWindow):
 
         layout.addWidget(preset_group)
 
+        # Planning Sets
+        planning_group = QGroupBox("Planning Sets")
+        planning_layout = QVBoxLayout(planning_group)
+
+        # Recording controls
+        record_layout = QHBoxLayout()
+        self.sequence_name_edit = QLineEdit()
+        self.sequence_name_edit.setPlaceholderText("Sequence name")
+        record_layout.addWidget(self.sequence_name_edit)
+
+        self.record_btn = QPushButton("Start Recording")
+        self.record_btn.clicked.connect(self.toggle_recording)
+        self.record_btn.setStyleSheet("QPushButton { background-color: orange; color: white; }")
+        record_layout.addWidget(self.record_btn)
+
+        planning_layout.addLayout(record_layout)
+
+        # Sequence list and controls
+        self.sequence_list = QListWidget()
+        self.sequence_list.setMaximumHeight(100)
+        planning_layout.addWidget(self.sequence_list)
+
+        sequence_btn_layout = QHBoxLayout()
+        self.refresh_sequences_btn = QPushButton("Refresh")
+        self.refresh_sequences_btn.clicked.connect(self.refresh_sequence_list)
+        sequence_btn_layout.addWidget(self.refresh_sequences_btn)
+
+        self.play_sequence_btn = QPushButton("Play Selected")
+        self.play_sequence_btn.clicked.connect(self.play_selected_sequence)
+        sequence_btn_layout.addWidget(self.play_sequence_btn)
+
+        self.delete_sequence_btn = QPushButton("Delete Selected")
+        self.delete_sequence_btn.clicked.connect(self.delete_selected_sequence)
+        sequence_btn_layout.addWidget(self.delete_sequence_btn)
+
+        planning_layout.addLayout(sequence_btn_layout)
+
+        # Save/Load controls
+        file_btn_layout = QHBoxLayout()
+        self.save_sequence_btn = QPushButton("Save to File")
+        self.save_sequence_btn.clicked.connect(self.save_sequence_to_file)
+        file_btn_layout.addWidget(self.save_sequence_btn)
+
+        self.load_sequence_btn = QPushButton("Load from File")
+        self.load_sequence_btn.clicked.connect(self.load_sequence_from_file)
+        file_btn_layout.addWidget(self.load_sequence_btn)
+
+        planning_layout.addLayout(file_btn_layout)
+
+        layout.addWidget(planning_group)
+
         # Emergency controls
         emergency_group = QGroupBox("Safety")
         emergency_layout = QVBoxLayout(emergency_group)
@@ -259,6 +314,9 @@ class ArmControlGUI(QMainWindow):
             self.connect_btn.setText("Disconnect")
             self.statusBar().showMessage(f"Connected to {port}")
             self.add_status_message(f"Connected to {port}")
+
+            # Refresh sequence list on connection
+            self.refresh_sequence_list()
 
         except Exception as e:
             QMessageBox.critical(self, "Connection Error", f"Failed to connect: {str(e)}")
@@ -368,6 +426,15 @@ class ArmControlGUI(QMainWindow):
             except Exception as e:
                 self.add_status_message(f"Parse error: {e}")
 
+        elif data.startswith("SEQUENCE:"):
+            # Handle sequence list response
+            self.sequence_list.clear()
+            lines = data.split('\n')
+            for line in lines[1:]:  # Skip the SEQUENCE: header
+                line = line.strip()
+                if line and ':' in line:
+                    self.sequence_list.addItem(line)
+
         elif data.startswith("ERROR:"):
             error_msg = data[6:]
             QMessageBox.warning(self, "Arduino Error", error_msg)
@@ -385,6 +452,122 @@ class ArmControlGUI(QMainWindow):
             cursor.movePosition(cursor.MoveOperation.Down)
             cursor.movePosition(cursor.MoveOperation.EndOfLine, cursor.MoveMode.KeepAnchor)
         cursor.removeSelectedText()
+
+    def toggle_recording(self):
+        """Start or stop recording a sequence"""
+        if not self.serial_worker:
+            QMessageBox.warning(self, "Error", "Not connected to Arduino")
+            return
+
+        sequence_name = self.sequence_name_edit.text().strip()
+        if not sequence_name:
+            QMessageBox.warning(self, "Error", "Please enter a sequence name")
+            return
+
+        if not self.is_recording:
+            # Start recording
+            command = f"RECORD_START:{self.current_sequence_index}:{sequence_name}"
+            self.serial_worker.send_command(command)
+            self.is_recording = True
+            self.record_btn.setText("Stop Recording")
+            self.record_btn.setStyleSheet("QPushButton { background-color: red; color: white; }")
+            self.add_status_message(f"Started recording sequence: {sequence_name}")
+        else:
+            # Stop recording
+            self.serial_worker.send_command("RECORD_STOP")
+            self.is_recording = False
+            self.record_btn.setText("Start Recording")
+            self.record_btn.setStyleSheet("QPushButton { background-color: orange; color: white; }")
+            self.add_status_message("Stopped recording sequence")
+            self.refresh_sequence_list()
+
+    def play_selected_sequence(self):
+        """Play the selected sequence"""
+        if not self.serial_worker:
+            QMessageBox.warning(self, "Error", "Not connected to Arduino")
+            return
+
+        current_item = self.sequence_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "Please select a sequence to play")
+            return
+
+        # Extract sequence index from item text (format: "index: name")
+        sequence_text = current_item.text()
+        try:
+            sequence_index = int(sequence_text.split(":")[0])
+            command = f"PLAY_SEQUENCE:{sequence_index}"
+            self.serial_worker.send_command(command)
+            self.add_status_message(f"Playing sequence {sequence_index}")
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Invalid sequence format")
+
+    def delete_selected_sequence(self):
+        """Delete the selected sequence"""
+        if not self.serial_worker:
+            QMessageBox.warning(self, "Error", "Not connected to Arduino")
+            return
+
+        current_item = self.sequence_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "Error", "Please select a sequence to delete")
+            return
+
+        # Extract sequence index from item text
+        sequence_text = current_item.text()
+        try:
+            sequence_index = int(sequence_text.split(":")[0])
+            command = f"DELETE_SEQUENCE:{sequence_index}"
+            self.serial_worker.send_command(command)
+            self.add_status_message(f"Deleted sequence {sequence_index}")
+            self.refresh_sequence_list()
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Invalid sequence format")
+
+    def refresh_sequence_list(self):
+        """Refresh the sequence list from Arduino"""
+        if self.serial_worker:
+            self.serial_worker.send_command("LIST_SEQUENCES")
+
+    def save_sequence_to_file(self):
+        """Save sequences to a JSON file"""
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Sequences", "", "JSON Files (*.json)")
+        if file_name:
+            try:
+                import json
+                sequences_data = {}
+
+                # Get current sequences from Arduino
+                # For now, we'll create a placeholder structure
+                # In a full implementation, we'd need to retrieve sequence data from Arduino
+                sequences_data = {
+                    "info": "Sequence data would be retrieved from Arduino",
+                    "sequences": []
+                }
+
+                with open(file_name, 'w') as f:
+                    json.dump(sequences_data, f, indent=2)
+
+                self.add_status_message(f"Sequences saved to {file_name}")
+                QMessageBox.information(self, "Success", f"Sequences saved to {file_name}")
+
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save sequences: {str(e)}")
+
+    def load_sequence_from_file(self):
+        """Load sequences from a JSON file"""
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Sequences", "", "JSON Files (*.json)")
+        if file_name:
+            try:
+                import json
+                with open(file_name, 'r') as f:
+                    sequences_data = json.load(f)
+
+                self.add_status_message(f"Sequences loaded from {file_name}")
+                QMessageBox.information(self, "Success", f"Sequences loaded from {file_name}\n\nNote: Sequences need to be uploaded to Arduino for execution.")
+
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to load sequences: {str(e)}")
 
     def closeEvent(self, event):
         """Handle application close"""

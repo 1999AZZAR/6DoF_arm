@@ -38,6 +38,13 @@ const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 #define CMD_HOME "HOME"
 #define CMD_STOP "STOP"
 #define CMD_STATUS "STATUS"
+#define CMD_RECORD_START "RECORD_START"
+#define CMD_RECORD_STOP "RECORD_STOP"
+#define CMD_PLAY_SEQUENCE "PLAY_SEQUENCE"
+#define CMD_SAVE_SEQUENCE "SAVE_SEQUENCE"
+#define CMD_LOAD_SEQUENCE "LOAD_SEQUENCE"
+#define CMD_LIST_SEQUENCES "LIST_SEQUENCES"
+#define CMD_DELETE_SEQUENCE "DELETE_SEQUENCE"
 
 // Joint command prefix
 #define CMD_JOINT_PREFIX "J"
@@ -45,6 +52,7 @@ const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 // Response prefixes
 #define RESP_OK "OK:"
 #define RESP_ERROR "ERROR:"
+#define RESP_SEQUENCE "SEQUENCE:"
 
 // Joint names for display/debugging
 extern const char* JOINT_NAMES[6];

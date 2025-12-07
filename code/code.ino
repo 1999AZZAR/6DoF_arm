@@ -48,9 +48,34 @@ boolean stringComplete = false;
 boolean emergencyStop = false;
 boolean movementInProgress = false;
 
+// Sequence management
+#define MAX_SEQUENCE_LENGTH 50
+#define MAX_SEQUENCES 5
+#define SEQUENCE_NAME_LENGTH 16
+
+struct SequencePoint {
+  int joints[6];
+  int delay_ms;
+};
+
+struct Sequence {
+  char name[SEQUENCE_NAME_LENGTH];
+  SequencePoint points[MAX_SEQUENCE_LENGTH];
+  int length;
+  boolean valid;
+};
+
+Sequence sequences[MAX_SEQUENCES];
+boolean isRecording = false;
+int currentRecordingSequence = -1;
+int currentSequenceIndex = 0;
+
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
   inputString.reserve(SERIAL_BUFFER_SIZE);
+
+  // Initialize sequences
+  initializeSequences();
 
   // Initialize servos
   attachServos();
@@ -58,7 +83,7 @@ void setup() {
   // Move to home position
   setupHome();
 
-  Serial.println("6DOF Arm Ready");
+  Serial.println("6DOF Arm Ready - Planning Sets Enabled");
   Serial.println("OK:J1:92,J2:85,J3:45,J4:108,J5:80,J6:152");
 }
 
@@ -148,6 +173,20 @@ void processCommand(String command) {
     sendStatus();
   } else if (command == CMD_STATUS) {
     sendStatus();
+  } else if (command.startsWith(CMD_RECORD_START)) {
+    // RECORD_START:sequence_index:name
+    processRecordStartCommand(command);
+  } else if (command == CMD_RECORD_STOP) {
+    isRecording = false;
+    Serial.println("OK:Recording stopped");
+  } else if (command.startsWith(CMD_PLAY_SEQUENCE)) {
+    // PLAY_SEQUENCE:sequence_index
+    processPlaySequenceCommand(command);
+  } else if (command == CMD_LIST_SEQUENCES) {
+    listSequences();
+  } else if (command.startsWith(CMD_DELETE_SEQUENCE)) {
+    // DELETE_SEQUENCE:sequence_index
+    processDeleteSequenceCommand(command);
   } else {
     Serial.println("ERROR:Invalid command");
   }
@@ -188,6 +227,12 @@ void processJointCommand(String command) {
 
   // Move servo
   moveServo(jointIndex, targetAngle);
+
+  // Add point to sequence if recording
+  if (isRecording && currentRecordingSequence >= 0) {
+    addSequencePoint(currentRecordingSequence, MOVE_SPEED);
+  }
+
   sendStatus();
 }
 
@@ -202,6 +247,145 @@ void sendStatus() {
     if (i < 5) Serial.print(",");
   }
   Serial.println();
+}
+
+// Sequence management functions
+void initializeSequences() {
+  for (int i = 0; i < MAX_SEQUENCES; i++) {
+    sequences[i].valid = false;
+    sequences[i].length = 0;
+  }
+}
+
+boolean createSequence(int index, String name) {
+  if (index < 0 || index >= MAX_SEQUENCES) return false;
+
+  name.toCharArray(sequences[index].name, SEQUENCE_NAME_LENGTH);
+  sequences[index].length = 0;
+  sequences[index].valid = true;
+  return true;
+}
+
+boolean addSequencePoint(int sequenceIndex, int delay_ms) {
+  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) return false;
+  if (!sequences[sequenceIndex].valid) return false;
+  if (sequences[sequenceIndex].length >= MAX_SEQUENCE_LENGTH) return false;
+
+  int pointIndex = sequences[sequenceIndex].length;
+  for (int i = 0; i < 6; i++) {
+    sequences[sequenceIndex].points[pointIndex].joints[i] = jointPositions[i];
+  }
+  sequences[sequenceIndex].points[pointIndex].delay_ms = delay_ms;
+  sequences[sequenceIndex].length++;
+
+  return true;
+}
+
+boolean playSequence(int sequenceIndex) {
+  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) return false;
+  if (!sequences[sequenceIndex].valid) return false;
+
+  for (int i = 0; i < sequences[sequenceIndex].length; i++) {
+    if (emergencyStop) break;
+
+    // Move to each point in sequence
+    for (int j = 0; j < 6; j++) {
+      if (emergencyStop) break;
+      moveServo(j, sequences[sequenceIndex].points[i].joints[j]);
+    }
+
+    if (sequences[sequenceIndex].points[i].delay_ms > 0) {
+      delay(sequences[sequenceIndex].points[i].delay_ms);
+    }
+  }
+
+  return true;
+}
+
+void listSequences() {
+  Serial.println(RESP_SEQUENCE);
+  for (int i = 0; i < MAX_SEQUENCES; i++) {
+    if (sequences[i].valid) {
+      Serial.print(i);
+      Serial.print(":");
+      Serial.println(sequences[i].name);
+    }
+  }
+}
+
+void processRecordStartCommand(String command) {
+  // Format: RECORD_START:sequence_index:name
+  int firstColon = command.indexOf(':');
+  int secondColon = command.indexOf(':', firstColon + 1);
+
+  if (firstColon == -1 || secondColon == -1) {
+    Serial.println("ERROR:Invalid RECORD_START format");
+    return;
+  }
+
+  String indexStr = command.substring(firstColon + 1, secondColon);
+  String nameStr = command.substring(secondColon + 1);
+
+  int sequenceIndex = indexStr.toInt();
+
+  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) {
+    Serial.println("ERROR:Invalid sequence index");
+    return;
+  }
+
+  if (createSequence(sequenceIndex, nameStr)) {
+    isRecording = true;
+    currentRecordingSequence = sequenceIndex;
+    Serial.print("OK:Recording started for sequence ");
+    Serial.println(sequenceIndex);
+  } else {
+    Serial.println("ERROR:Failed to create sequence");
+  }
+}
+
+void processPlaySequenceCommand(String command) {
+  // Format: PLAY_SEQUENCE:sequence_index
+  int colonIndex = command.indexOf(':');
+  if (colonIndex == -1) {
+    Serial.println("ERROR:Invalid PLAY_SEQUENCE format");
+    return;
+  }
+
+  String indexStr = command.substring(colonIndex + 1);
+  int sequenceIndex = indexStr.toInt();
+
+  if (playSequence(sequenceIndex)) {
+    Serial.print("OK:Sequence ");
+    Serial.print(sequenceIndex);
+    Serial.println(" completed");
+    sendStatus();
+  } else {
+    Serial.println("ERROR:Failed to play sequence");
+  }
+}
+
+void processDeleteSequenceCommand(String command) {
+  // Format: DELETE_SEQUENCE:sequence_index
+  int colonIndex = command.indexOf(':');
+  if (colonIndex == -1) {
+    Serial.println("ERROR:Invalid DELETE_SEQUENCE format");
+    return;
+  }
+
+  String indexStr = command.substring(colonIndex + 1);
+  int sequenceIndex = indexStr.toInt();
+
+  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) {
+    Serial.println("ERROR:Invalid sequence index");
+    return;
+  }
+
+  sequences[sequenceIndex].valid = false;
+  sequences[sequenceIndex].length = 0;
+
+  Serial.print("OK:Sequence ");
+  Serial.print(sequenceIndex);
+  Serial.println(" deleted");
 }
 
 // Serial event handler

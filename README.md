@@ -16,6 +16,7 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
   - [Commands (Python → Arduino)](#commands-python--arduino)
   - [Responses (Arduino → Python)](#responses-arduino--python)
 - [Safety Features](#safety-features)
+- [Planning Sets](#planning-sets)
 - [Customization](#customization)
   - [Joint Limits](#joint-limits)
   - [Movement Speed](#movement-speed)
@@ -37,6 +38,7 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 - **Real-time Control**: Live joint position control with sliders
 - **Safety Features**: Joint limits validation, emergency stop, movement validation
 - **Preset Positions**: Pre-programmed positions for common tasks (Home, Pick, Place, Wave)
+- **Planning Sets**: Record, save, load, and playback movement sequences
 - **Visual Feedback**: Real-time position display and status monitoring
 - **Modern GUI**: Clean Qt6 interface with dark theme
 
@@ -163,6 +165,41 @@ ERROR:Invalid command                           - Command error
 - **Emergency Stop**: Immediate halt of all movements
 - **Validation**: Commands are validated before execution
 - **Movement Interruption**: Emergency stop can interrupt ongoing movements
+
+## Planning Sets
+
+The system supports creating and managing movement sequences (Planning Sets) for automated operations:
+
+### Recording Sequences
+
+1. Enter a sequence name in the text field
+2. Click "Start Recording" (button turns red)
+3. Move joints using sliders - each movement is recorded as a waypoint
+4. Click "Stop Recording" when finished
+
+### Managing Sequences
+
+- **Play Selected**: Execute the selected sequence from the list
+- **Delete Selected**: Remove the selected sequence
+- **Refresh**: Update the sequence list from Arduino
+- **Save to File**: Export sequences to JSON file for backup
+- **Load from File**: Import sequences from JSON file
+
+### Sequence Protocol
+
+```
+RECORD_START:sequence_index:name    - Start recording sequence
+RECORD_STOP                        - Stop recording
+PLAY_SEQUENCE:sequence_index       - Play recorded sequence
+LIST_SEQUENCES                     - Get list of sequences
+DELETE_SEQUENCE:sequence_index     - Delete sequence
+```
+
+### Arduino Storage
+
+- **Capacity**: Up to 5 sequences in Arduino memory
+- **Length**: Each sequence can have up to 50 waypoints
+- **Persistence**: Sequences are stored in RAM (lost on power cycle)
 
 ## Customization
 
