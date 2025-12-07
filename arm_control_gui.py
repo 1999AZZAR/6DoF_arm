@@ -17,7 +17,7 @@ import serial.tools.list_ports
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QSlider, QPushButton, QGroupBox, QTextEdit, QComboBox,
-    QMessageBox, QGridLayout, QFrame, QFileDialog, QListWidget, QLineEdit
+    QMessageBox, QGridLayout, QFrame, QFileDialog, QListWidget, QLineEdit, QSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
