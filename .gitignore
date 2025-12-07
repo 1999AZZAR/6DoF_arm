@@ -199,6 +199,11 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
+# Arduino CLI build directories
+build_*/
+build/
+*.bin
+
 # dotenv environment variables file
 .env
 

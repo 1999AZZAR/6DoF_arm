@@ -1,9 +1,0 @@
-{
-  "additionalFiles": "../..",
-  "compiler.optimization_flags": "-Os",
-  "customBuildProperties": "",
-  "fqbn": "arduino:renesas_uno:minima",
-  "hardwareFolders": "/home/azzar/.arduino15/packages",
-  "otherLibrariesFolders": "/home/azzar/Arduino/libraries",
-  "sketchLocation": "/home/azzar/project/microcontrollers/Arduino/SKETCH/6DoF_arm/code"
-}
