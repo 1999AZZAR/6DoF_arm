@@ -21,21 +21,6 @@ const int SERVO_PINS[6] = {
     SERVO_PIN_4, SERVO_PIN_5, SERVO_PIN_6
 };
 
-// Potentiometer pin assignments (for teaching mode)
-// Note: A6-A7 used to keep A4-A5 free for I2C (SDA/SCL)
-#define POT_PIN_1 A0   // Base rotation potentiometer
-#define POT_PIN_2 A1   // Shoulder potentiometer
-#define POT_PIN_3 A2   // Elbow potentiometer
-#define POT_PIN_4 A3   // Wrist rotation potentiometer
-#define POT_PIN_5 A6   // Wrist bend potentiometer (A6 available on Uno/Mega)
-#define POT_PIN_6 A7   // Gripper potentiometer (A7 available on Uno/Mega)
-
-// Potentiometer pin array for easy access
-const int POT_PINS[6] = {
-    POT_PIN_1, POT_PIN_2, POT_PIN_3,
-    POT_PIN_4, POT_PIN_5, POT_PIN_6
-};
-
 // Joint limits (degrees) - adjusted for realistic robot arm constraints
 const int JOINT_MIN[6] = {0, 30, 0, 0, 0, 90};
 const int JOINT_MAX[6] = {180, 150, 180, 180, 180, 180};
@@ -61,9 +46,6 @@ const int HOME_POSITIONS[6] = {92, 85, 45, 108, 80, 152};
 #define CMD_LOAD_SEQUENCE "LOAD_SEQUENCE"
 #define CMD_LIST_SEQUENCES "LIST_SEQUENCES"
 #define CMD_DELETE_SEQUENCE "DELETE_SEQUENCE"
-#define CMD_TEACH_START "TEACH_START"
-#define CMD_TEACH_STOP "TEACH_STOP"
-#define CMD_READ_POSITIONS "READ_POSITIONS"
 
 // Joint command prefix
 #define CMD_JOINT_PREFIX "J"

@@ -39,20 +39,16 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 - **Safety Features**: Joint limits validation, emergency stop, movement validation
 - **Preset Positions**: Pre-programmed positions for common tasks (Home, Pick, Place, Wave)
 - **Planning Sets**: Record, save, load, and playback movement sequences
-- **Teaching Mode**: Learn movements by physically moving the arm
 - **Visual Feedback**: Real-time position display and status monitoring
 - **Modern GUI**: Clean Qt6 interface with dark theme
 - **Optimized Codebase**: Focused on Arduino Uno and Mega compatibility
 
 ## Hardware Requirements
 
-- **Arduino Uno** or **Arduino Mega** (recommended - AVR-based)
+- **Arduino Uno** or **Arduino Mega** (recommended)
 - 6DOF Robot Arm with servo motors
 - USB cable for serial communication
-- Servo motors connected to pins 4, 5, 6, 7, 8, 9 (both boards)
-- **A4-A5 reserved for I2C** (SDA/SCL) for future expansion
-- Optional: Potentiometers on A0-A3, A6-A7 for teaching mode
-- **Note**: A6-A7 only available on AVR-based boards (Uno, Mega, Nano)
+- Servo motors connected to pins 4, 5, 6, 7, 8, 9
 
 ## Software Requirements
 
@@ -113,15 +109,6 @@ The Arduino code (`code/code.ino` and `code/config.h`) provides:
 - Joint 5 (Wrist Bend): Pin 5
 - Joint 6 (Gripper): Pin 4
 
-**Teaching Mode Potentiometers** (Optional):
-- Pot 1 (Base): A0
-- Pot 2 (Shoulder): A1
-- Pot 3 (Elbow): A2
-- Pot 4 (Wrist Rotation): A3
-- Pot 5 (Wrist Bend): A6
-- Pot 6 (Gripper): A7
-- **A4-A5: Reserved for I2C**
-
 ### Python GUI
 
 Run the GUI application:
@@ -180,15 +167,15 @@ ERROR:Invalid command                           - Command error
 ## Benchmark Results
 
 ### Arduino Uno
-- **Flash Usage**: 30% (9750/32256 bytes)
-- **RAM Usage**: 77% (1578/2048 bytes)
-- **Status**: ✅ Functional but memory-constrained
+- **Flash Usage**: 26% (8558/32256 bytes)
+- **RAM Usage**: 67% (1391/2048 bytes)
+- **Status**: ✅ Good performance, simplified codebase
 - **Sequences**: 2 sequences × 15 waypoints each
 
 ### Arduino Mega
-- **Flash Usage**: 4% (10928/253952 bytes)
-- **RAM Usage**: 20% (1689/8192 bytes)
-- **Status**: ✅ Excellent performance, recommended
+- **Flash Usage**: 3% (9718/253952 bytes)
+- **RAM Usage**: 18% (1502/8192 bytes)
+- **Status**: ✅ Excellent performance, highly recommended
 - **Sequences**: 2 sequences × 15 waypoints each
 
 ## Safety Features
@@ -208,31 +195,6 @@ The system supports creating and managing movement sequences (Planning Sets) for
 2. Click "Start Recording" (button turns red)
 3. Move joints using sliders - each movement is recorded as a waypoint
 4. Click "Stop Recording" when finished
-
-### Teaching by Demonstration
-
-For more intuitive programming, you can physically move the robot arm to "teach" it sequences:
-
-#### Hardware Setup:
-- Connect potentiometers to each joint: `A0, A1, A2, A3, A6, A7`
-- **A4-A5 are reserved for I2C** (don't connect potentiometers there)
-- Potentiometers should be mechanically linked to joint positions
-- Calibration: Ensure pot range (0-1023) maps to joint range (min-max)
-
-#### Teaching Process:
-1. Enter sequence name
-2. Click "Start Teaching" (button turns red)
-3. **Physically move the robot arm by hand**
-4. GUI shows live position feedback from potentiometers
-5. Arduino automatically records positions as you move
-6. Click "Stop Teaching" when finished
-
-#### Teaching Commands:
-```
-TEACH_START:sequence_index:name    - Start teaching mode
-TEACH_STOP                        - Stop teaching mode
-READ_POSITIONS                    - Get current pot positions
-```
 
 ### Managing Sequences
 
@@ -254,7 +216,7 @@ DELETE_SEQUENCE:sequence_index     - Delete sequence
 
 ### Arduino Storage
 
-- **Capacity**: Up to 5 sequences in Arduino memory
+- **Capacity**: Up to 2 sequences in Arduino memory
 - **Length**: Each sequence can have up to 50 waypoints
 - **Persistence**: Sequences are stored in RAM (lost on power cycle)
 

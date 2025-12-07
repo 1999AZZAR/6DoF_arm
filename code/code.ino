@@ -48,10 +48,6 @@ boolean stringComplete = false;
 boolean emergencyStop = false;
 boolean movementInProgress = false;
 
-// Teaching mode
-boolean teachingMode = false;
-int teachingSequenceIndex = -1;
-
 // Sequence management (optimized for Arduino Uno memory)
 #define MAX_SEQUENCE_LENGTH 15  // Reduced from 50 to fit in 2KB RAM
 #define MAX_SEQUENCES 2         // Reduced from 5 to fit in 2KB RAM
@@ -98,9 +94,6 @@ void loop() {
     inputString = "";
     stringComplete = false;
   }
-
-  // Handle teaching mode updates
-  teachingModeUpdate();
 }
 
 // Attach all servos
@@ -194,15 +187,6 @@ void processCommand(String command) {
   } else if (command.startsWith(CMD_DELETE_SEQUENCE)) {
     // DELETE_SEQUENCE:sequence_index
     processDeleteSequenceCommand(command);
-  } else if (command.startsWith(CMD_TEACH_START)) {
-    // TEACH_START:sequence_index:name
-    processTeachStartCommand(command);
-  } else if (command == CMD_TEACH_STOP) {
-    teachingMode = false;
-    teachingSequenceIndex = -1;
-    Serial.println("OK:Teaching stopped");
-  } else if (command == CMD_READ_POSITIONS) {
-    sendCurrentPotPositions();
   } else {
     Serial.println("ERROR:Invalid command");
   }
@@ -329,46 +313,6 @@ void listSequences() {
   }
 }
 
-// Read potentiometer values and convert to joint angles
-void readJointPositionsFromPots(int jointAngles[6]) {
-  for (int i = 0; i < 6; i++) {
-    int potValue = analogRead(POT_PINS[i]);
-    // Convert ADC value (0-1023) to joint angle (min-max)
-    jointAngles[i] = map(potValue, 0, 1023, JOINT_MIN[i], JOINT_MAX[i]);
-  }
-}
-
-// Teaching mode: record positions from potentiometers
-void teachingModeUpdate() {
-  if (teachingMode && teachingSequenceIndex >= 0) {
-    static unsigned long lastRecordTime = 0;
-    unsigned long currentTime = millis();
-
-    // Record position every 100ms during teaching
-    if (currentTime - lastRecordTime >= 100) {
-      int currentJointAngles[6];
-      readJointPositionsFromPots(currentJointAngles);
-
-      // Only record if position has changed significantly
-      boolean positionChanged = false;
-      for (int i = 0; i < 6; i++) {
-        if (abs(currentJointAngles[i] - jointPositions[i]) > 2) { // 2-degree threshold
-          positionChanged = true;
-          break;
-        }
-      }
-
-      if (positionChanged) {
-        // Update current positions and record to sequence
-        for (int i = 0; i < 6; i++) {
-          jointPositions[i] = currentJointAngles[i];
-        }
-        addSequencePoint(teachingSequenceIndex, 100); // 100ms delay between points
-        lastRecordTime = currentTime;
-      }
-    }
-  }
-}
 
 void processRecordStartCommand(String command) {
   // Format: RECORD_START:sequence_index:name
@@ -445,50 +389,6 @@ void processDeleteSequenceCommand(String command) {
   Serial.println(" deleted");
 }
 
-void processTeachStartCommand(String command) {
-  // Format: TEACH_START:sequence_index:name
-  int firstColon = command.indexOf(':');
-  int secondColon = command.indexOf(':', firstColon + 1);
-
-  if (firstColon == -1 || secondColon == -1) {
-    Serial.println("ERROR:Invalid TEACH_START format");
-    return;
-  }
-
-  String indexStr = command.substring(firstColon + 1, secondColon);
-  String nameStr = command.substring(secondColon + 1);
-
-  int sequenceIndex = indexStr.toInt();
-
-  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) {
-    Serial.println("ERROR:Invalid sequence index");
-    return;
-  }
-
-  if (createSequence(sequenceIndex, nameStr)) {
-    teachingMode = true;
-    teachingSequenceIndex = sequenceIndex;
-    Serial.print("OK:Teaching started for sequence ");
-    Serial.println(sequenceIndex);
-  } else {
-    Serial.println("ERROR:Failed to create sequence");
-  }
-}
-
-void sendCurrentPotPositions() {
-  int jointAngles[6];
-  readJointPositionsFromPots(jointAngles);
-
-  Serial.print("POSITIONS:");
-  for (int i = 0; i < 6; i++) {
-    Serial.print("J");
-    Serial.print(i + 1);
-    Serial.print(":");
-    Serial.print(jointAngles[i]);
-    if (i < 5) Serial.print(",");
-  }
-  Serial.println();
-}
 
 // Serial event handler
 void serialEvent() {
