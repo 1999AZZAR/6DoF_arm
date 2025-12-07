@@ -480,11 +480,6 @@ class ArmControlGUI(QMainWindow):
             self.refresh_sequence_list()
 
     def play_selected_sequence(self):
-        """Update GUI with current potentiometer positions during teaching"""
-        if self.serial_worker and self.is_teaching:
-            self.serial_worker.send_command("READ_POSITIONS")
-
-    def play_selected_sequence(self):
         """Play the selected sequence"""
         if not self.serial_worker:
             QMessageBox.warning(self, "Error", "Not connected to Arduino")
