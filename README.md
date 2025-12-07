@@ -148,7 +148,7 @@ python arm_control_gui.py
    - **Pick**: Actual picking position (gripper closes)
    - **Place Ready**: Position for placing objects
    - **Place**: Actual placing position (gripper opens)
-   - **Wave**: Fun demonstration sequence
+   - **Wave**: Friendly wave gesture (raises arm and waves left-right)
 
 4. **Safety Controls**:
    - **Emergency Stop**: Immediately halts all movement
@@ -167,6 +167,7 @@ J1:90      - Set joint 1 to 90 degrees
 J2:45      - Set joint 2 to 45 degrees
 HOME       - Move to home position
 FOLD       - Move all joints to minimum positions (assembly/storage)
+WAVE       - Perform friendly wave gesture
 STOP       - Emergency stop
 STATUS     - Request current positions
 ```
@@ -200,6 +201,8 @@ HOME       # Move to home position (92,85,45,108,80,152)
 STATUS     # Verify home position
 FOLD       # Move to folded position (0,30,0,0,0,90)
 STATUS     # Verify folded position
+WAVE       # Perform friendly wave gesture
+STATUS     # Verify position after wave
 STOP       # Emergency stop (if needed)
 ```
 
@@ -277,6 +280,10 @@ STATUS
 
 # Test fold command
 FOLD
+STATUS
+
+# Test wave command
+WAVE
 STATUS
 
 # Test emergency stop

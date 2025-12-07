@@ -147,6 +147,40 @@ void foldServos() {
   }
 }
 
+// Wave motion - friendly greeting gesture
+void waveServos() {
+  // Save current positions
+  int originalPositions[6];
+  for (int i = 0; i < 6; i++) {
+    originalPositions[i] = jointPositions[i];
+  }
+
+  // Move to wave-ready position (slightly raised arm)
+  moveServo(1, 120); // Raise shoulder
+  moveServo(2, 90);  // Bend elbow
+  moveServo(3, 90);  // Rotate wrist
+  moveServo(4, 60);  // Bend wrist down
+
+  // Wave motion - move base left and right 3 times
+  for (int wave = 0; wave < 3; wave++) {
+    if (emergencyStop) break;
+
+    // Wave left
+    moveServo(0, 60);  // Turn base left
+    delay(300);
+
+    // Wave right
+    moveServo(0, 120); // Turn base right
+    delay(300);
+  }
+
+  // Return to original positions
+  for (int i = 0; i < 6; i++) {
+    if (emergencyStop) break;
+    moveServo(i, originalPositions[i]);
+  }
+}
+
 // Non-blocking servo movement state
 struct ServoMovement {
   boolean active;
@@ -220,6 +254,9 @@ void processCommand(String command) {
     sendStatus();
   } else if (command == CMD_FOLD) {
     foldServos();
+    sendStatus();
+  } else if (command == CMD_WAVE) {
+    waveServos();
     sendStatus();
   } else if (command.startsWith(CMD_RECORD_START)) {
     processRecordStartCommand(command);
