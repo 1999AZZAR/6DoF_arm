@@ -164,20 +164,136 @@ ERROR:Joint limit exceeded                       - Error message
 ERROR:Invalid command                           - Command error
 SEQUENCE:0:MySequence,1:PickAndPlace            - Available sequences
 
+## Prebuilt Command Testing
+
+### Basic Movement Commands
+
+**Individual Joint Control:**
+```bash
+J1:90      # Move base to 90°
+J2:45      # Move shoulder to 45°
+J3:60      # Move elbow to 60°
+J4:120     # Move wrist rotation to 120°
+J5:80      # Move wrist bend to 80°
+J6:150     # Move gripper to 150°
+STATUS     # Check current positions
+```
+
+**Position Commands:**
+```bash
+HOME       # Move to home position (92,85,45,108,80,152)
+STATUS     # Verify home position
+STOP       # Emergency stop (if needed)
+```
+
+### Joint Limits Testing
+
+**Valid Ranges:**
+```bash
+J1:0       # Base minimum
+J1:180     # Base maximum
+J2:30      # Shoulder minimum (mechanical limit)
+J2:150     # Shoulder maximum (mechanical limit)
+J3:0       # Elbow minimum
+J3:180     # Elbow maximum
+```
+
+**Error Testing:**
+```bash
+J1:200     # Should give error (over 180°)
+J2:10      # Should give error (under 30°)
+J2:160     # Should give error (over 150°)
+J7:90      # Should give error (invalid joint)
+```
+
+### Sequence Commands
+
+**Recording Sequences:**
+```bash
+RECORD_START:0:PickSequence   # Start recording sequence 0
+J1:45                         # Record base movement
+J2:90                         # Record shoulder movement
+J3:135                        # Record elbow movement
+J4:60                         # Record wrist rotation
+RECORD_STOP                   # Stop recording
+LIST_SEQUENCES               # Verify sequence saved
+```
+
+**Playing Sequences:**
+```bash
+PLAY_SEQUENCE:0              # Play recorded sequence
+STATUS                       # Check final position
+```
+
+**Sequence Management:**
+```bash
+LIST_SEQUENCES               # Show all sequences
+DELETE_SEQUENCE:0            # Delete sequence 0
+LIST_SEQUENCES               # Verify deletion
+```
+
+### Arduino Serial Monitor Setup
+
+1. **Upload code** to Arduino Uno/Mega
+2. **Open Serial Monitor** (Tools → Serial Monitor)
+3. **Set baud rate** to `115200`
+4. **Line ending** to `Newline` or `Both NL & CR`
+5. **Send commands** one by one and observe responses
+
+### Complete Test Sequence
+
+```bash
+# Initial status
+STATUS
+
+# Test individual joints
+J1:90
+STATUS
+J2:45
+STATUS
+J3:60
+STATUS
+
+# Test home command
+HOME
+STATUS
+
+# Test emergency stop
+J1:180
+STOP
+STATUS
+
+# Test sequence recording
+RECORD_START:0:TestMove
+J1:30
+J2:80
+J3:120
+RECORD_STOP
+
+# Test sequence playback
+LIST_SEQUENCES
+PLAY_SEQUENCE:0
+STATUS
+
+# Clean up
+DELETE_SEQUENCE:0
+LIST_SEQUENCES
+```
+
 ## Benchmark Results
 
-### Arduino Uno (Reliable & Optimized)
-- **Flash Usage**: 27% (9028/32256 bytes)
-- **RAM Usage**: 81% (1675/2048 bytes)
-- **Status**: ✅ Reliable blocking movement system
-- **Movement Speed**: 35ms intervals (smooth and responsive)
+### Arduino Uno (Final Optimized)
+- **Flash Usage**: 27% (8822/32256 bytes)
+- **RAM Usage**: 74% (1525/2048 bytes)
+- **Status**: ✅ Excellent performance, reliable system
+- **Movement Speed**: 25ms intervals (fast and smooth)
 - **Sequences**: 2 sequences × 15 waypoints each
 
-### Arduino Mega (Reliable & Optimized)
-- **Flash Usage**: 4% (10188/253952 bytes)
-- **RAM Usage**: 21% (1786/8192 bytes)
-- **Status**: ✅ Excellent performance, highly recommended
-- **Movement Speed**: 35ms intervals (optimal smoothness)
+### Arduino Mega (Final Optimized)
+- **Flash Usage**: 3% (9982/253952 bytes)
+- **RAM Usage**: 19% (1636/8192 bytes)
+- **Status**: ✅ Perfect performance, highly recommended
+- **Movement Speed**: 25ms intervals (optimal smoothness)
 - **Sequences**: 2 sequences × 15 waypoints each
 
 ## Safety Features

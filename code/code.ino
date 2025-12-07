@@ -46,7 +46,6 @@ boolean stringComplete = false;
 
 // Safety flags
 boolean emergencyStop = false;
-boolean movementInProgress = false;
 
 // Movement timing optimization
 unsigned long lastMovementTime = 0;
@@ -190,16 +189,10 @@ void processCommand(String command) {
     // Joint control command (e.g., "J1:90")
     processJointCommand(command);
   } else if (command == CMD_HOME) {
-    if (!movementInProgress) {
-      setupHome();
-      sendStatus();
-    } else {
-      Serial.println("ERROR:Movement in progress, cannot go home");
-    }
+    setupHome();
+    sendStatus();
   } else if (command == CMD_STOP) {
     emergencyStop = true;
-    currentMovement.active = false; // Stop any ongoing movement
-    movementInProgress = false;
     isRecording = false; // Also stop recording if active
     Serial.println("ERROR:Emergency stop activated");
     delay(50); // Brief pause to ensure stop
@@ -213,11 +206,7 @@ void processCommand(String command) {
     isRecording = false;
     Serial.println("OK:Recording stopped");
   } else if (command.startsWith(CMD_PLAY_SEQUENCE)) {
-    if (!movementInProgress) {
-      processPlaySequenceCommand(command);
-    } else {
-      Serial.println("ERROR:Movement in progress, cannot play sequence");
-    }
+    processPlaySequenceCommand(command);
   } else if (command == CMD_LIST_SEQUENCES) {
     listSequences();
   } else if (command.startsWith(CMD_DELETE_SEQUENCE)) {
