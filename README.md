@@ -383,19 +383,19 @@ LIST_SEQUENCES
 
 ### Arduino Uno (Final Optimized)
 
-- **Flash Usage**: 27% (8822/32256 bytes)
-- **RAM Usage**: 74% (1525/2048 bytes)
+- **Flash Usage**: 35% (11572/32256 bytes)
+- **RAM Usage**: 92% (1890/2048 bytes, 158 bytes free)
 - **Status**: ✅ Excellent performance, reliable system
 - **Movement Speed**: 25ms intervals (fast and smooth)
-- **Sequences**: 2 sequences × 15 waypoints each
+- **Sequences**: 2 user sequences × 15 waypoints + 6 prebuilt sequences
 
 ### Arduino Mega (Final Optimized)
 
-- **Flash Usage**: 3% (9982/253952 bytes)
-- **RAM Usage**: 19% (1636/8192 bytes)
+- **Flash Usage**: 5% (12732/253952 bytes)
+- **RAM Usage**: 24% (2001/8192 bytes, 6191 bytes free)
 - **Status**: ✅ Perfect performance, highly recommended
 - **Movement Speed**: 25ms intervals (optimal smoothness)
-- **Sequences**: 2 sequences × 15 waypoints each
+- **Sequences**: 2 user sequences × 15 waypoints + 6 prebuilt sequences
 
 ## Safety Features
 
