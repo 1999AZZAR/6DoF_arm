@@ -47,6 +47,9 @@ boolean stringComplete = false;
 // Safety flags
 boolean emergencyStop = false;
 
+// Movement state tracking
+boolean movementInProgress = false;
+
 // Movement timing optimization
 unsigned long lastMovementTime = 0;
 const unsigned long MOVEMENT_INTERVAL = 25; // Faster, smoother movement (was 50ms)
@@ -113,6 +116,7 @@ void attachServos() {
 
 // Move to home position (blocking for setup)
 void setupHome() {
+  movementInProgress = true;
   for (int i = 0; i < 6; i++) {
     Servo* servo;
     switch(i) {
@@ -127,6 +131,7 @@ void setupHome() {
     jointPositions[i] = HOME_POSITIONS[i];
     delay(200); // Small delay for stable movement during setup
   }
+  movementInProgress = false;
 }
 
 // Non-blocking servo movement state
@@ -211,6 +216,66 @@ void processCommand(String command) {
     listSequences();
   } else if (command.startsWith(CMD_DELETE_SEQUENCE)) {
     processDeleteSequenceCommand(command);
+  } else if (command == CMD_PICK_SEQUENCE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playPickSequence();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
+  } else if (command == CMD_PLACE_SEQUENCE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playPlaceSequence();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
+  } else if (command == CMD_WAVE_SEQUENCE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playWaveSequence();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
+  } else if (command == CMD_INSPECT_SEQUENCE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playInspectSequence();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
+  } else if (command == CMD_DRAW_CIRCLE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playDrawCircle();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
+  } else if (command == CMD_RESET_SEQUENCE) {
+    if (!movementInProgress) {
+      movementInProgress = true;
+      playResetSequence();
+      movementInProgress = false;
+      sendStatus();
+    } else {
+      Serial.print(RESP_ERROR);
+      Serial.println("Movement in progress, cannot start sequence");
+    }
   } else {
     Serial.print("ERROR:Unknown command: ");
     Serial.println(command);
@@ -351,6 +416,149 @@ void listSequences() {
   }
 }
 
+// Prebuilt movement sequences - hardcoded for quick access
+void playPickSequence() {
+  Serial.println("OK:Starting PICK_SEQUENCE");
+  // Approach position
+  moveServo(0, 60);   // Base
+  moveServo(1, 90);   // Shoulder
+  moveServo(2, 120);  // Elbow
+  moveServo(3, 90);   // Wrist rot
+  moveServo(4, 90);   // Wrist bend
+  moveServo(5, 120);  // Gripper open
+  delay(500);
+
+  // Pick position - close gripper
+  moveServo(2, 135);  // Elbow down
+  moveServo(5, 160);  // Gripper close
+  delay(1000);
+
+  // Lift up
+  moveServo(1, 70);   // Shoulder up
+  moveServo(2, 100);  // Elbow up
+  delay(500);
+
+  Serial.println("OK:PICK_SEQUENCE completed");
+}
+
+void playPlaceSequence() {
+  Serial.println("OK:Starting PLACE_SEQUENCE");
+  // Move to place position
+  moveServo(0, 120);  // Base
+  moveServo(1, 80);   // Shoulder
+  moveServo(2, 110);  // Elbow
+  moveServo(3, 100);  // Wrist rot
+  moveServo(4, 95);   // Wrist bend
+  delay(500);
+
+  // Place position - lower down
+  moveServo(1, 95);   // Shoulder down
+  moveServo(2, 135);  // Elbow down
+  delay(500);
+
+  // Open gripper
+  moveServo(5, 120);  // Gripper open
+  delay(1000);
+
+  // Lift up
+  moveServo(1, 70);   // Shoulder up
+  moveServo(2, 100);  // Elbow up
+  delay(500);
+
+  Serial.println("OK:PLACE_SEQUENCE completed");
+}
+
+void playWaveSequence() {
+  Serial.println("OK:Starting WAVE_SEQUENCE");
+  int basePos = jointPositions[0]; // Save current base position
+
+  // Raise arm
+  moveServo(1, 60);   // Shoulder up
+  moveServo(2, 80);   // Elbow up
+  moveServo(3, 90);   // Wrist rot
+  moveServo(4, 45);   // Wrist bend
+  moveServo(5, 120);  // Gripper open
+  delay(300);
+
+  // Wave motion
+  for (int i = 0; i < 3; i++) {
+    moveServo(0, basePos - 30); // Wave left
+    delay(200);
+    moveServo(0, basePos + 30); // Wave right
+    delay(200);
+  }
+
+  // Return to center
+  moveServo(0, basePos);
+  delay(300);
+
+  Serial.println("OK:WAVE_SEQUENCE completed");
+}
+
+void playInspectSequence() {
+  Serial.println("OK:Starting INSPECT_SEQUENCE");
+  // Scan left to right
+  for (int angle = 0; angle <= 180; angle += 10) {
+    moveServo(0, angle); // Base rotation
+    delay(200);
+  }
+
+  // Scan right to left
+  for (int angle = 180; angle >= 0; angle -= 10) {
+    moveServo(0, angle); // Base rotation
+    delay(200);
+  }
+
+  // Return to center
+  moveServo(0, 90);
+  delay(300);
+
+  Serial.println("OK:INSPECT_SEQUENCE completed");
+}
+
+void playDrawCircle() {
+  Serial.println("OK:Starting DRAW_CIRCLE");
+  int centerX = 90; // Base center
+  int centerY = 90; // Shoulder center
+  int radius = 20;  // Circle radius
+
+  // Prepare drawing position
+  moveServo(1, centerY);     // Shoulder
+  moveServo(2, 100);         // Elbow
+  moveServo(3, 90);          // Wrist rot
+  moveServo(4, 90);          // Wrist bend
+  moveServo(5, 140);         // Gripper position for "drawing"
+  delay(500);
+
+  // Draw circle (16 points for smooth circle)
+  for (int i = 0; i < 16; i++) {
+    float angle = (i * 2 * PI) / 16;
+    int baseAngle = centerX + (int)(radius * cos(angle));
+    int shoulderAngle = centerY + (int)(radius * 0.5 * sin(angle));
+
+    // Constrain to joint limits
+    baseAngle = constrain(baseAngle, JOINT_MIN[0], JOINT_MAX[0]);
+    shoulderAngle = constrain(shoulderAngle, JOINT_MIN[1], JOINT_MAX[1]);
+
+    moveServo(0, baseAngle);     // Base
+    moveServo(1, shoulderAngle); // Shoulder
+    delay(150);
+  }
+
+  Serial.println("OK:DRAW_CIRCLE completed");
+}
+
+void playResetSequence() {
+  Serial.println("OK:Starting RESET_SEQUENCE");
+  // Slow, careful return to home
+  for (int i = 0; i < 6; i++) {
+    moveServo(i, HOME_POSITIONS[i]);
+    delay(100); // Extra delay for safety
+  }
+  delay(500);
+  Serial.println("OK:RESET_SEQUENCE completed");
+}
+
 
 void processRecordStartCommand(String command) {
   // Format: RECORD_START:sequence_index:name
@@ -393,6 +601,7 @@ void processPlaySequenceCommand(String command) {
   String indexStr = command.substring(colonIndex + 1);
   int sequenceIndex = indexStr.toInt();
 
+  movementInProgress = true;
   if (playSequence(sequenceIndex)) {
     Serial.print("OK:Sequence ");
     Serial.print(sequenceIndex);
@@ -401,6 +610,7 @@ void processPlaySequenceCommand(String command) {
   } else {
     Serial.println("ERROR:Failed to play sequence");
   }
+  movementInProgress = false;
 }
 
 void processDeleteSequenceCommand(String command) {
