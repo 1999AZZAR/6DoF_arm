@@ -74,15 +74,6 @@ boolean isRecording = false;
 int currentRecordingSequence = -1;
 int currentSequenceIndex = 0;
 
-// Sequence playback state for non-blocking playback
-struct SequencePlayback {
-  boolean active;
-  int sequenceIndex;
-  int currentStep;
-  unsigned long lastStepTime;
-};
-
-SequencePlayback currentPlayback = {false, -1, 0, 0};
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
@@ -109,12 +100,6 @@ void loop() {
     inputString = "";
     stringComplete = false;
   }
-
-  // Update servo movements (non-blocking)
-  updateServoMovement();
-
-  // Update sequence playback (non-blocking)
-  updateSequencePlayback();
 }
 
 // Attach all servos
@@ -156,71 +141,41 @@ struct ServoMovement {
 
 ServoMovement currentMovement = {false, 0, 0, 0, 0};
 
-// Initialize servo movement (non-blocking)
-void startServoMovement(int jointIndex, int targetAngle) {
-  if (emergencyStop || jointIndex < 0 || jointIndex >= 6) return;
-
-  // Validate angle limits
-  if (targetAngle < JOINT_MIN[jointIndex] || targetAngle > JOINT_MAX[jointIndex]) {
-    Serial.print("ERROR:Joint ");
-    Serial.print(jointIndex + 1);
-    Serial.print(" angle out of range (");
-    Serial.print(JOINT_MIN[jointIndex]);
-    Serial.print("-");
-    Serial.print(JOINT_MAX[jointIndex]);
-    Serial.println(")");
+// Simple blocking servo movement (proven and reliable)
+void moveServo(int jointIndex, int targetAngle) {
+  if (emergencyStop) {
+    Serial.println("ERROR:Emergency stop active");
     return;
   }
 
-  currentMovement.active = true;
-  currentMovement.jointIndex = jointIndex;
-  currentMovement.targetAngle = targetAngle;
-  currentMovement.currentAngle = jointPositions[jointIndex];
-  currentMovement.stepDirection = (targetAngle > jointPositions[jointIndex]) ? 1 : -1;
-
-  movementInProgress = true;
-}
-
-// Update servo movement (call in main loop - non-blocking)
-void updateServoMovement() {
-  if (!currentMovement.active || emergencyStop) {
-    if (emergencyStop) {
-      currentMovement.active = false;
-      movementInProgress = false;
-      Serial.println("ERROR:Emergency stop active");
-    }
-    return;
+  Servo* servo;
+  switch(jointIndex) {
+    case 0: servo = &servo1; break;
+    case 1: servo = &servo2; break;
+    case 2: servo = &servo3; break;
+    case 3: servo = &servo4; break;
+    case 4: servo = &servo5; break;
+    case 5: servo = &servo6; break;
+    default: return;
   }
 
-  unsigned long currentTime = millis();
-  if (currentTime - lastMovementTime >= MOVEMENT_INTERVAL) {
-    // Move one step
-    Servo* servo;
-    switch(currentMovement.jointIndex) {
-      case 0: servo = &servo1; break;
-      case 1: servo = &servo2; break;
-      case 2: servo = &servo3; break;
-      case 3: servo = &servo4; break;
-      case 4: servo = &servo5; break;
-      case 5: servo = &servo6; break;
-      default: return;
+  int currentAngle = jointPositions[jointIndex];
+
+  if (currentAngle < targetAngle) {
+    for (int angle = currentAngle; angle <= targetAngle; angle++) {
+      if (emergencyStop) break;
+      servo->write(angle);
+      delay(MOVE_SPEED);
     }
-
-    servo->write(currentMovement.currentAngle);
-    jointPositions[currentMovement.jointIndex] = currentMovement.currentAngle;
-
-    // Check if we've reached the target
-    if (currentMovement.currentAngle == currentMovement.targetAngle) {
-      currentMovement.active = false;
-      movementInProgress = false;
-      lastMovementTime = currentTime;
-      return;
+  } else if (currentAngle > targetAngle) {
+    for (int angle = currentAngle; angle >= targetAngle; angle--) {
+      if (emergencyStop) break;
+      servo->write(angle);
+      delay(MOVE_SPEED);
     }
-
-    // Move to next angle
-    currentMovement.currentAngle += currentMovement.stepDirection;
-    lastMovementTime = currentTime;
   }
+
+  jointPositions[jointIndex] = targetAngle;
 }
 
 // Process incoming serial commands with improved validation
@@ -318,19 +273,18 @@ void processJointCommand(String command) {
     return;
   }
 
-  // Start servo movement (non-blocking)
-  startServoMovement(jointIndex, targetAngle);
+  // Move servo (blocking but reliable)
+  moveServo(jointIndex, targetAngle);
 
   // Add point to sequence if recording
   if (isRecording && currentRecordingSequence >= 0) {
-    addSequencePoint(currentRecordingSequence, MOVEMENT_INTERVAL);
+    addSequencePoint(currentRecordingSequence, MOVE_SPEED);
   }
 
-  // Send status immediately (movement will continue in background)
   sendStatus();
 }
 
-// Send current status with system state indicators
+// Send current status
 void sendStatus() {
   Serial.print(RESP_OK);
   for (int i = 0; i < 6; i++) {
@@ -340,15 +294,6 @@ void sendStatus() {
     Serial.print(jointPositions[i]);
     if (i < 5) Serial.print(",");
   }
-
-  // Add system state indicators for better monitoring
-  Serial.print("|MOVING:");
-  Serial.print(currentMovement.active ? "1" : "0");
-  Serial.print("|RECORDING:");
-  Serial.print(isRecording ? "1" : "0");
-  Serial.print("|PLAYBACK:");
-  Serial.print(currentPlayback.active ? "1" : "0");
-
   Serial.println();
 }
 
@@ -384,73 +329,26 @@ boolean addSequencePoint(int sequenceIndex, int delay_ms) {
   return true;
 }
 
-// Start sequence playback (non-blocking)
-boolean startSequencePlayback(int sequenceIndex) {
+// Simple blocking sequence playback (reliable)
+boolean playSequence(int sequenceIndex) {
   if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) return false;
   if (!sequences[sequenceIndex].valid) return false;
-  if (sequences[sequenceIndex].length == 0) return false;
 
-  // Check if any movement is in progress
-  if (currentMovement.active || currentPlayback.active) {
-    return false; // Cannot start playback while moving
+  for (int i = 0; i < sequences[sequenceIndex].length; i++) {
+    if (emergencyStop) break;
+
+    // Move to each point in sequence
+    for (int j = 0; j < 6; j++) {
+      if (emergencyStop) break;
+      moveServo(j, sequences[sequenceIndex].points[i].joints[j]);
+    }
+
+    if (sequences[sequenceIndex].points[i].delay_ms > 0) {
+      delay(sequences[sequenceIndex].points[i].delay_ms);
+    }
   }
-
-  currentPlayback.active = true;
-  currentPlayback.sequenceIndex = sequenceIndex;
-  currentPlayback.currentStep = 0;
-  currentPlayback.lastStepTime = millis();
 
   return true;
-}
-
-// Update sequence playback (call in main loop)
-void updateSequencePlayback() {
-  if (!currentPlayback.active || emergencyStop) {
-    if (emergencyStop) {
-      currentPlayback.active = false;
-      Serial.println("ERROR:Sequence playback stopped by emergency");
-    }
-    return;
-  }
-
-  // Check if current movement is complete before proceeding to next step
-  if (currentMovement.active) return;
-
-  unsigned long currentTime = millis();
-  int delayTime = sequences[currentPlayback.sequenceIndex].points[currentPlayback.currentStep].delay_ms;
-
-  if (currentTime - currentPlayback.lastStepTime >= delayTime) {
-    // Move to next step
-    if (currentPlayback.currentStep >= sequences[currentPlayback.sequenceIndex].length) {
-      // Sequence complete
-      currentPlayback.active = false;
-      Serial.print("OK:Sequence ");
-      Serial.print(currentPlayback.sequenceIndex);
-      Serial.println(" completed");
-      sendStatus();
-      return;
-    }
-
-    // Execute current step - move all joints simultaneously
-    for (int j = 0; j < 6; j++) {
-      int targetAngle = sequences[currentPlayback.sequenceIndex].points[currentPlayback.currentStep].joints[j];
-      // Use direct servo write for simultaneous movement (bypass movement queue)
-      Servo* servo;
-      switch(j) {
-        case 0: servo = &servo1; break;
-        case 1: servo = &servo2; break;
-        case 2: servo = &servo3; break;
-        case 3: servo = &servo4; break;
-        case 4: servo = &servo5; break;
-        case 5: servo = &servo6; break;
-      }
-      servo->write(targetAngle);
-      jointPositions[j] = targetAngle;
-    }
-
-    currentPlayback.lastStepTime = currentTime;
-    currentPlayback.currentStep++;
-  }
 }
 
 void listSequences() {
@@ -504,26 +402,15 @@ void processPlaySequenceCommand(String command) {
   }
 
   String indexStr = command.substring(colonIndex + 1);
-
-  // Validate numeric input
-  if (indexStr.length() == 0) {
-    Serial.println("ERROR:Missing sequence index");
-    return;
-  }
-  for (unsigned int i = 0; i < indexStr.length(); i++) {
-    if (!isDigit(indexStr.charAt(i))) {
-      Serial.println("ERROR:Sequence index must be numeric");
-      return;
-    }
-  }
-
   int sequenceIndex = indexStr.toInt();
 
-  if (startSequencePlayback(sequenceIndex)) {
-    Serial.print("OK:Started playing sequence ");
-    Serial.println(sequenceIndex);
+  if (playSequence(sequenceIndex)) {
+    Serial.print("OK:Sequence ");
+    Serial.print(sequenceIndex);
+    Serial.println(" completed");
+    sendStatus();
   } else {
-    Serial.println("ERROR:Failed to start sequence playback (movement in progress or invalid sequence)");
+    Serial.println("ERROR:Failed to play sequence");
   }
 }
 
