@@ -23,8 +23,8 @@ flowchart TD
 
         %% Arduino Control Layer
         subgraph "Arduino Control Layer"
-            MainLoop[Main Control Loop code.ino loop()]
-            CmdProcessor[Command Processor processCommand()]
+            MainLoop[Main Control Loop code.ino loop]
+            CmdProcessor[Command Processor processCommand]
             SafetySys[Safety System Limit validation & emergency stop]
             SeqMgr[Sequence Manager Record & playback sequences]
         end
@@ -238,7 +238,7 @@ flowchart TD
         PinConfig[Pin Configuration SERVO_PINS[6] = {9,8,7,6,5,4}]
         LimitConfig[Joint Limits JOINT_MIN/MAX arrays]
         HomeConfig[Home Position HOME_POSITIONS[6] = {92,85,45,108,80,152}]
-        SpeedConfig[Movement Speed MOVE_SPEED = 15ms (configurable)]
+        SpeedConfig[Movement Speed MOVE_SPEED = 15ms configurable]
         SerialConfig[Serial Settings 115200 baud, 100 char buffer]
 
         PinConfig --> ServoCtrl
