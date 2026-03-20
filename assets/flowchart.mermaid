@@ -4,44 +4,47 @@ config:
 ---
 flowchart TB
  subgraph subGraph0["User Interface Layer"]
-        UI["User Interface Python Qt6 GUI"]
-        JointCtrl["Joint Control Panel 6 Sliders J1-J6"]
-        PresetCtrl["Preset Positions HOME, MIN, MAX, WAVE"]
-        SpeedCtrl["Movement Speed Control 5-200ms configurable"]
-        SeqCtrl["Sequence Management Record/Play/Delete"]
-        StatusMon["Status Monitor Real-time feedback"]
-        ConnectCtrl["Connection Control Port selection & status"]
+        UI["Python Qt6 GUI<br/>ArmControlGUI"]
+        JointCtrl["Joint Control Panel<br/>6 Debounced Sliders J1-J6"]
+        PresetCtrl["Preset Positions<br/>HOME, MIN, MAX, WAVE"]
+        SpeedCtrl["Speed Control<br/>5-200ms configurable"]
+        SeqCtrl["Sequence Management<br/>Record / Play / Delete / Save / Load"]
+        StatusMon["Status Monitor<br/>200-line capped log"]
+        ConnectCtrl["Connection Control<br/>Port select, auto-reconnect"]
+        Shortcuts["Keyboard Shortcuts<br/>Esc, Ctrl+H, Ctrl+R, Ctrl+Shift+C"]
   end
  subgraph subGraph1["Communication Layer"]
-        SerialProto["Serial Communication Protocol 115200 baud, text-based"]
-        CmdParser["Command Parser Validate & process commands"]
-        RespHandler["Response Handler Format & send feedback"]
+        SerialProto["Serial Protocol<br/>115200 baud, text-based"]
+        Debounce["Slider Debounce<br/>80ms QTimer batching"]
+        CmdParser["Command Parser<br/>Validate and process"]
+        RespHandler["Response Handler<br/>Format and send feedback"]
   end
  subgraph subGraph2["Arduino Control Layer"]
-        MainLoop["Main Control Loop code.ino loop"]
-        CmdProcessor["Command Processor processCommand"]
-        SafetySys["Safety System Limit validation & emergency stop"]
-        SeqMgr["Sequence Manager Record & playback sequences"]
+        MainLoop["Main Loop<br/>readSerial() in loop()"]
+        CharBuffer["Char Buffer Input<br/>No String heap fragmentation"]
+        CmdProcessor["Command Processor<br/>processCommand()"]
+        SafetySys["Safety System<br/>clampAngle() + limit validation"]
+        SeqMgr["Sequence Manager<br/>Record and playback"]
   end
  subgraph subGraph3["Hardware Control Layer"]
-        ServoCtrl["Servo Controller 6 Servo motors"]
-        Joint1["Joint 1 - Base Pin 9, 0-180°"]
-        Joint2["Joint 2 - Shoulder Pin 8, 30-150°"]
-        Joint3["Joint 3 - Elbow Pin 7, 0-180°"]
-        Joint4["Joint 4 - Wrist Rotation Pin 6, 0-180°"]
-        Joint5["Joint 5 - Wrist Bend Pin 5, 0-180°"]
-        Joint6["Joint 6 - Gripper Pin 4, 90-180°"]
+        ServoArray["Servo Array<br/>Servo servos[6]"]
+        Joint1["J1 - Base<br/>Pin 9, 0-180 deg"]
+        Joint2["J2 - Shoulder<br/>Pin 8, 30-150 deg"]
+        Joint3["J3 - Elbow<br/>Pin 7, 0-180 deg"]
+        Joint4["J4 - Wrist Rot<br/>Pin 6, 0-180 deg"]
+        Joint5["J5 - Wrist Bend<br/>Pin 5, 0-180 deg"]
+        Joint6["J6 - Gripper<br/>Pin 4, 90-180 deg"]
   end
  subgraph subGraph4["Sequence Management Layer"]
-        SeqRecord["Sequence Recording Capture joint positions"]
-        SeqStorage["Sequence Storage RAM-based, 2 sequences × 15 points"]
-        SeqPlayback["Sequence Playback Execute recorded movements"]
-        SeqFileIO["Sequence File I/O Save/Load JSON files"]
+        SeqRecord["Sequence Recording<br/>Capture joint positions"]
+        SeqStorage["Sequence Storage<br/>RAM: 2 sequences x 15 points"]
+        SeqPlayback["Sequence Playback<br/>Execute recorded movements"]
+        SeqFileIO["Sequence File I/O<br/>Save/Load JSON"]
   end
  subgraph subGraph5["Data Storage Layer"]
-        JointPos["Joint Positions Array int jointPositions[6]"]
-        ConfigData["Configuration Data Limits, home positions, pins"]
-        SeqData["Sequence Data Struct arrays in RAM"]
+        JointPos["Joint Positions<br/>int jointPositions[6]"]
+        ConfigData["Configuration<br/>config.h: limits, pins, defaults"]
+        SeqData["Sequence Data<br/>Struct arrays in RAM"]
   end
  subgraph subGraph6["6DOF Robot Arm Control System"]
     direction TB
@@ -52,127 +55,114 @@ flowchart TB
         subGraph4
         subGraph5
   end
- subgraph subGraph7["Command Processing Details"]
+ subgraph subGraph7["Command Processing"]
     direction LR
-        CmdInput["Command Input String from Serial"]
-        CmdValidate["Validate Command Check format & length"]
-        CmdRoute["Route Command By command type"]
-        JointCmd["Joint Commands J1:90, J2:45, etc."]
-        PresetCmd["Preset Commands HOME, MIN, MAX, WAVE"]
-        SpeedCmd["Speed Commands SET_SPEED:15"]
-        SeqCmd["Sequence Commands RECORD_START, PLAY_SEQUENCE"]
-        SafetyCmd["Safety Commands STOP, STATUS"]
-        InvalidCmd["Invalid Commands Unknown or malformed"]
+        CmdInput["Input String<br/>From char buffer"]
+        CmdValidate["Validate<br/>Format and length"]
+        CmdRoute["Route<br/>By command type"]
+        JointCmd["Joint Commands<br/>J1:90 with limit check"]
+        PresetCmd["Preset Commands<br/>HOME, MIN, MAX, WAVE"]
+        SpeedCmd["Speed Commands<br/>SET_SPEED:15"]
+        SeqCmd["Sequence Commands<br/>RECORD, PLAY, LIST, DELETE"]
+        SafetyCmd["Safety Commands<br/>STOP, STATUS"]
+        InvalidCmd["Invalid Commands<br/>Return error"]
   end
- subgraph subGraph8["Joint Movement Details"]
+ subgraph subGraph8["Joint Movement"]
     direction LR
-        TargetSet["Set Target Position Validate against limits"]
-        CurrentRead["Read Current Position From jointPositions array"]
-        DirectionCalc["Calculate Movement Direction Clockwise/Counter-clockwise"]
-        StepMove["Step-by-Step Movement With configurable delay"]
-        PositionUpdate["Update Position Array After movement complete"]
-        FeedbackSend["Send Position Feedback Via serial response"]
+        LimitCheck["Validate Against Limits<br/>JOINT_MIN / JOINT_MAX"]
+        ClampAngle["clampAngle()<br/>Secondary safeguard"]
+        StepMove["Step Movement<br/>Configurable delay per degree"]
+        PositionUpdate["Update Position Array<br/>jointPositions[i]"]
+        FeedbackSend["Send Status<br/>OK:J1:val,..."]
   end
- subgraph subGraph9["Sequence Recording Details"]
+ subgraph subGraph9["Sequence Recording"]
     direction LR
-        RecordStart["Start Recording RECORD_START:name"]
-        PositionCapture["Capture Current Positions All 6 joints"]
-        SequenceAdd["Add to Sequence Array Store joint positions"]
-        RecordStop["Stop Recording RECORD_STOP"]
-        SequenceSave["Save Sequence To memory slot"]
+        RecordStart["Start<br/>RECORD_START:idx:name"]
+        PositionCapture["Capture Positions<br/>All 6 joints"]
+        SequenceAdd["Add to Array<br/>Store waypoint"]
+        RecordStop["Stop<br/>RECORD_STOP"]
   end
- subgraph subGraph10["Sequence Playback Details"]
+ subgraph subGraph10["Sequence Playback"]
     direction LR
-        PlaybackStart["Start Playback PLAY_SEQUENCE:id"]
-        SequenceLoad["Load Sequence Data From memory slot"]
-        PointExecute["Execute Each Point Move to stored positions"]
-        DelayApply["Apply Point Delay Timing control"]
-        PlaybackComplete["Playback Complete Send completion status"]
+        PlaybackStart["Start<br/>PLAY_SEQUENCE:idx"]
+        SequenceLoad["Load Data<br/>From memory slot"]
+        PointExecute["Execute Points<br/>Move all 6 joints per point"]
+        PlaybackComplete["Complete<br/>Send status"]
   end
- subgraph subGraph11["Error Handling Details"]
+ subgraph subGraph11["Error Handling"]
     direction LR
-        ErrorDetect["Error Detection Validation failures"]
-        ErrorClassify["Error Classification Joint limit, invalid command, etc."]
-        ErrorResponse["Error Response Format error message"]
-        ErrorLog["Error Logging Send via serial"]
-        RecoveryAction["Recovery Action Stop movement, reset state"]
+        ErrorDetect["Detection<br/>Validation failures"]
+        ErrorClassify["Classification<br/>Limit, format, unknown"]
+        ErrorResponse["Response<br/>ERROR:description"]
+        RecoveryAction["Recovery<br/>Stop movement, reset"]
   end
- subgraph subGraph12["System Configuration"]
+ subgraph subGraph12["System Configuration (config.h)"]
     direction TB
-        PinConfig["Pin Configuration SERVO_PINS[6] = {9,8,7,6,5,4}"]
-        LimitConfig["Joint Limits JOINT_MIN/MAX arrays"]
-        HomeConfig["Home Position HOME_POSITIONS[6] = {92,85,45,108,80,152}"]
-        SpeedConfig["Movement Speed MOVE_SPEED = 15ms configurable"]
-        SerialConfig["Serial Settings 115200 baud, 100 char buffer"]
-  end
- subgraph subGraph13["Performance Optimizations"]
-    direction LR
-        MemoryOpt["Memory Optimization Reduced sequence limits for Uno"]
-        SpeedOpt["Movement Speed Control Configurable delay 5-200ms"]
-        BlockingMove["Blocking Movement Reliable step-by-step control"]
-        BufferOpt["Buffer Optimization 100 char serial buffer"]
-        ValidationOpt["Validation Optimization Fast limit checking"]
+        PinConfig["Pin Config<br/>SERVO_PINS[6] = {9,8,7,6,5,4}"]
+        LimitConfig["Joint Limits<br/>JOINT_MIN / JOINT_MAX arrays"]
+        HomeConfig["Home Position<br/>HOME_POSITIONS[6] = {92,85,45,108,80,152}"]
+        SpeedConfig["Speed Defaults<br/>DEFAULT=15, MIN=5, MAX=200 ms"]
+        SerialConfig["Serial Settings<br/>115200 baud, 100 char buffer"]
   end
     User["User"] --> UI
+    User --> Shortcuts
+    Shortcuts --> UI
     UI --> JointCtrl & PresetCtrl & SpeedCtrl & SeqCtrl & StatusMon & ConnectCtrl
+    JointCtrl --> Debounce
+    Debounce --> SerialProto
     ConnectCtrl --> SerialProto
-    SerialProto --> CmdParser
-    CmdParser --> RespHandler & MainLoop
+    PresetCtrl --> SerialProto
+    SpeedCtrl --> SerialProto
+    SeqCtrl --> SerialProto
+    SerialProto --> CharBuffer
+    CharBuffer --> MainLoop
     MainLoop --> CmdProcessor
-    CmdProcessor -- "J1:90, J2:45, etc." --> SafetySys
-    CmdProcessor -- HOME, MIN, MAX, WAVE --> PresetCtrl
-    CmdProcessor -- SET_SPEED:15 --> SpeedCtrl
-    CmdProcessor -- RECORD_START:name --> SeqMgr
-    CmdProcessor -- PLAY_SEQUENCE:id --> SeqMgr
-    CmdProcessor -- LIST_SEQUENCES --> SeqMgr
-    CmdProcessor -- STOP --> SafetySys
-    SafetySys -- Valid commands --> ServoCtrl
-    SafetySys -- Invalid commands --> RespHandler
-    SafetySys -. Emergency stop .-> ServoCtrl
-    ServoCtrl --> Joint1 & Joint2 & Joint3 & Joint4 & Joint5 & Joint6 & JointPos
-    SeqMgr --> SeqRecord & SeqPlayback & StatusMon
+    CmdProcessor -- "J1:90, etc." --> SafetySys
+    CmdProcessor -- "HOME, MIN, MAX, WAVE" --> ServoArray
+    CmdProcessor -- "SET_SPEED:15" --> SpeedConfig
+    CmdProcessor -- "RECORD_START:name" --> SeqMgr
+    CmdProcessor -- "PLAY_SEQUENCE:id" --> SeqMgr
+    CmdProcessor -- "LIST_SEQUENCES" --> SeqMgr
+    CmdProcessor -- "STOP" --> SafetySys
+    SafetySys -- "Valid, clamped" --> ServoArray
+    SafetySys -- "Invalid" --> RespHandler
+    SafetySys -. "Emergency stop" .-> ServoArray
+    ServoArray --> Joint1 & Joint2 & Joint3 & Joint4 & Joint5 & Joint6 & JointPos
+    SeqMgr --> SeqRecord & SeqPlayback
     SeqRecord --> SeqStorage & JointPos
-    SeqPlayback --> SeqStorage & ServoCtrl
+    SeqPlayback --> SeqStorage & ServoArray
     SeqStorage --> SeqFileIO
-    JointPos --> ServoCtrl & RespHandler & StatusMon
+    JointPos --> RespHandler & StatusMon
     ConfigData --> CmdProcessor & SafetySys
     SeqData --> SeqMgr
-    RespHandler --> StatusMon
+    RespHandler --> SerialProto
+    SerialProto --> StatusMon
     CmdInput --> CmdValidate
     CmdValidate --> CmdRoute
     CmdRoute --> JointCmd & PresetCmd & SpeedCmd & SeqCmd & SafetyCmd & InvalidCmd
     CmdProcessor -.-> CmdInput
-    TargetSet --> CurrentRead
-    CurrentRead --> DirectionCalc
-    DirectionCalc --> StepMove
+    LimitCheck --> ClampAngle
+    ClampAngle --> StepMove
     StepMove --> PositionUpdate
     PositionUpdate --> FeedbackSend
-    ServoCtrl -.-> TargetSet
+    SafetySys -.-> LimitCheck
     RecordStart --> PositionCapture
     PositionCapture --> SequenceAdd
     SequenceAdd --> RecordStop
-    RecordStop --> SequenceSave
     SeqRecord -.-> RecordStart
     PlaybackStart --> SequenceLoad
     SequenceLoad --> PointExecute
-    PointExecute --> DelayApply
-    DelayApply --> PlaybackComplete
+    PointExecute --> PlaybackComplete
     SeqPlayback -.-> PlaybackStart
     ErrorDetect --> ErrorClassify
     ErrorClassify --> ErrorResponse
-    ErrorResponse --> ErrorLog
-    ErrorLog --> RecoveryAction
+    ErrorResponse --> RecoveryAction
     SafetySys -.-> ErrorDetect
-    PinConfig --> ServoCtrl
+    PinConfig --> ServoArray
     LimitConfig --> SafetySys
     HomeConfig --> CmdProcessor
-    SpeedConfig --> ServoCtrl
+    SpeedConfig --> ServoArray
     SerialConfig --> SerialProto
-    MemoryOpt --> SeqStorage
-    SpeedOpt --> ServoCtrl
-    BlockingMove --> Joint1
-    BufferOpt --> SerialProto
-    ValidationOpt --> SafetySys
 
      UI:::userInterface
      JointCtrl:::userInterface
@@ -181,15 +171,18 @@ flowchart TB
      SeqCtrl:::userInterface
      StatusMon:::userInterface
      ConnectCtrl:::userInterface
+     Shortcuts:::userInterface
      SerialProto:::communication
+     Debounce:::communication
      CmdParser:::communication
      RespHandler:::communication
      MainLoop:::control
+     CharBuffer:::control
      CmdProcessor:::control
      SafetySys:::control
      SafetySys:::critical
      SeqMgr:::sequence
-     ServoCtrl:::hardware
+     ServoArray:::hardware
      Joint1:::hardware
      Joint2:::hardware
      Joint3:::hardware

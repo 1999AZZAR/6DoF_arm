@@ -1,66 +1,48 @@
 /*
  * 6DOF Robot Arm Serial Control
- * Arduino Nano controlled 6DOF robot arm with serial communication
+ * Arduino-based 6DOF robot arm with serial communication
  * Compatible with Python Qt6 GUI interface
  *
  * Serial Protocol:
- * Commands from Python:
- *   J1:90     - Set joint 1 to 90 degrees
- *   J2:45     - Set joint 2 to 45 degrees
- *   J3:0      - Set joint 3 to 0 degrees
- *   J4:108    - Set joint 4 to 108 degrees
- *   J5:80     - Set joint 5 to 80 degrees
- *   J6:152    - Set joint 6 to 152 degrees
- *   HOME      - Go to home position
- *   STOP      - Emergency stop
- *   STATUS    - Request current positions
+ * Commands:
+ *   J1:90 .. J6:152  - Set joint angle (validated against limits)
+ *   HOME              - Go to home position
+ *   MIN / MAX         - Move all joints to min/max limits
+ *   WAVE              - Perform wave gesture
+ *   SET_SPEED:15      - Set movement delay per step (5-200 ms)
+ *   STOP              - Emergency stop
+ *   STATUS            - Request current positions
+ *   RECORD_START:idx:name / RECORD_STOP
+ *   PLAY_SEQUENCE:idx / LIST_SEQUENCES / DELETE_SEQUENCE:idx
  *
- * Responses to Python:
+ * Responses:
  *   OK:J1:90,J2:45,J3:0,J4:108,J5:80,J6:152
- *   ERROR:Joint limit exceeded
- *   ERROR:Invalid command
+ *   ERROR:<description>
+ *   SEQUENCE:<index>:<name>
  */
 
 #include <Servo.h>
 #include "config.h"
 
-// Joint names for display/debugging
-const char* JOINT_NAMES[6] = {
-    "Base", "Shoulder", "Elbow", "Wrist Rot", "Wrist Bend", "Gripper"
-};
-
-// Servo objects for 6DOF arm
-Servo servo1; // Base rotation
-Servo servo2; // Shoulder
-Servo servo3; // Elbow
-Servo servo4; // Wrist rotation
-Servo servo5; // Wrist bend
-Servo servo6; // Gripper
+// Servo array replaces individual servo variables
+Servo servos[NUM_JOINTS];
 
 // Current joint positions
-int jointPositions[6] = {92, 85, 45, 108, 80, 152};
+int jointPositions[NUM_JOINTS];
 
-// Serial communication
-String inputString = "";
-boolean stringComplete = false;
+// Serial input buffer (avoids String heap fragmentation)
+char inputBuffer[SERIAL_BUFFER_SIZE];
+int bufferIndex = 0;
 
 // Safety flags
 boolean emergencyStop = false;
 
-// Movement speed (configurable via SET_SPEED command)
-int MOVE_SPEED = 15; // Optimized for smooth and responsive movement
+// Configurable movement speed (ms delay per degree step)
+int moveSpeed = DEFAULT_MOVE_SPEED;
 
-// Movement timing optimization
-unsigned long lastMovementTime = 0;
-const unsigned long MOVEMENT_INTERVAL = 25; // Faster, smoother movement (was 50ms)
-
-// Sequence management (optimized for Arduino Uno memory)
-#define MAX_SEQUENCE_LENGTH 15  // Reduced from 50 to fit in 2KB RAM
-#define MAX_SEQUENCES 2         // Reduced from 5 to fit in 2KB RAM
-#define SEQUENCE_NAME_LENGTH 16
-
+// Sequence management
 struct SequencePoint {
-  int joints[6];
+  int joints[NUM_JOINTS];
   int delay_ms;
 };
 
@@ -74,213 +56,152 @@ struct Sequence {
 Sequence sequences[MAX_SEQUENCES];
 boolean isRecording = false;
 int currentRecordingSequence = -1;
-int currentSequenceIndex = 0;
 
+// ---------- Setup & Loop ----------
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
-  inputString.reserve(SERIAL_BUFFER_SIZE);
 
-  // Initialize sequences
   initializeSequences();
 
-  // Initialize servos
-  attachServos();
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    servos[i].attach(SERVO_PINS[i]);
+  }
 
-  // Move to home position
-  setupHome();
+  moveToPositions(HOME_POSITIONS, 200);
 
-  Serial.println("6DOF Arm Ready - Optimized for Uno/Mega");
-  Serial.println("Features: Non-blocking movement, Planning Sets, Real-time control");
-  Serial.println("OK:J1:92,J2:85,J3:45,J4:108,J5:80,J6:152");
+  Serial.println(F("6DOF Arm Ready"));
+  sendStatus();
 }
 
 void loop() {
-  // Handle serial communication
-  if (stringComplete) {
-    processCommand(inputString);
-    inputString = "";
-    stringComplete = false;
-  }
+  readSerial();
 }
 
-// Attach all servos
-void attachServos() {
-  servo1.attach(SERVO_PINS[0]);
-  servo2.attach(SERVO_PINS[1]);
-  servo3.attach(SERVO_PINS[2]);
-  servo4.attach(SERVO_PINS[3]);
-  servo5.attach(SERVO_PINS[4]);
-  servo6.attach(SERVO_PINS[5]);
-}
+// ---------- Serial I/O ----------
 
-// Move to home position (blocking for setup)
-void setupHome() {
-  for (int i = 0; i < 6; i++) {
-    Servo* servo;
-    switch(i) {
-      case 0: servo = &servo1; break;
-      case 1: servo = &servo2; break;
-      case 2: servo = &servo3; break;
-      case 3: servo = &servo4; break;
-      case 4: servo = &servo5; break;
-      case 5: servo = &servo6; break;
+void readSerial() {
+  while (Serial.available()) {
+    char c = (char)Serial.read();
+    if (c == '\n' || c == '\r') {
+      if (bufferIndex > 0) {
+        inputBuffer[bufferIndex] = '\0';
+        processCommand(String(inputBuffer));
+        bufferIndex = 0;
+      }
+    } else if (bufferIndex < SERIAL_BUFFER_SIZE - 1) {
+      inputBuffer[bufferIndex++] = c;
     }
-    servo->write(HOME_POSITIONS[i]);
-    jointPositions[i] = HOME_POSITIONS[i];
-    delay(200); // Small delay for stable movement during setup
   }
 }
 
-// Move all servos to minimum positions
-void minServos() {
-  for (int i = 0; i < 6; i++) {
-    Servo* servo;
-    switch(i) {
-      case 0: servo = &servo1; break;
-      case 1: servo = &servo2; break;
-      case 2: servo = &servo3; break;
-      case 3: servo = &servo4; break;
-      case 4: servo = &servo5; break;
-      case 5: servo = &servo6; break;
-    }
-    servo->write(JOINT_MIN[i]);
-    jointPositions[i] = JOINT_MIN[i];
-    delay(200); // Small delay for stable movement
+void sendStatus() {
+  Serial.print(RESP_OK);
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    Serial.print('J');
+    Serial.print(i + 1);
+    Serial.print(':');
+    Serial.print(jointPositions[i]);
+    if (i < NUM_JOINTS - 1) Serial.print(',');
   }
+  Serial.println();
 }
 
-// Move all servos to maximum positions
-void maxServos() {
-  for (int i = 0; i < 6; i++) {
-    Servo* servo;
-    switch(i) {
-      case 0: servo = &servo1; break;
-      case 1: servo = &servo2; break;
-      case 2: servo = &servo3; break;
-      case 3: servo = &servo4; break;
-      case 4: servo = &servo5; break;
-      case 5: servo = &servo6; break;
-    }
-    servo->write(JOINT_MAX[i]);
-    jointPositions[i] = JOINT_MAX[i];
-    delay(200); // Small delay for stable movement
-  }
+// ---------- Movement ----------
+
+int clampAngle(int jointIndex, int angle) {
+  if (angle < JOINT_MIN[jointIndex]) return JOINT_MIN[jointIndex];
+  if (angle > JOINT_MAX[jointIndex]) return JOINT_MAX[jointIndex];
+  return angle;
 }
 
-// Wave motion - friendly greeting gesture
-void waveServos() {
-  // Save current positions
-  int originalPositions[6];
-  for (int i = 0; i < 6; i++) {
-    originalPositions[i] = jointPositions[i];
-  }
-
-  // Move to wave-ready position (slightly raised arm)
-  moveServo(1, 120); // Raise shoulder
-  moveServo(2, 90);  // Bend elbow
-  moveServo(3, 90);  // Rotate wrist
-  moveServo(4, 60);  // Bend wrist down
-
-  // Wave motion - move base left and right 3 times
-  for (int wave = 0; wave < 3; wave++) {
-    if (emergencyStop) break;
-
-    // Wave left
-    moveServo(0, 60);  // Turn base left
-    delay(300);
-
-    // Wave right
-    moveServo(0, 120); // Turn base right
-    delay(300);
-  }
-
-  // Return to original positions
-  for (int i = 0; i < 6; i++) {
-    if (emergencyStop) break;
-    moveServo(i, originalPositions[i]);
-  }
-}
-
-// Non-blocking servo movement state
-struct ServoMovement {
-  boolean active;
-  int jointIndex;
-  int targetAngle;
-  int currentAngle;
-  int stepDirection; // 1 for increasing, -1 for decreasing
-};
-
-ServoMovement currentMovement = {false, 0, 0, 0, 0};
-
-// Simple blocking servo movement (proven and reliable)
 void moveServo(int jointIndex, int targetAngle) {
-  if (emergencyStop) {
-    Serial.println("ERROR:Emergency stop active");
-    return;
+  if (emergencyStop) return;
+  if (jointIndex < 0 || jointIndex >= NUM_JOINTS) return;
+
+  targetAngle = clampAngle(jointIndex, targetAngle);
+
+  int current = jointPositions[jointIndex];
+  int step = (current < targetAngle) ? 1 : -1;
+
+  for (int a = current; a != targetAngle; a += step) {
+    if (emergencyStop) break;
+    servos[jointIndex].write(a);
+    delay(moveSpeed);
   }
-
-  Servo* servo;
-  switch(jointIndex) {
-    case 0: servo = &servo1; break;
-    case 1: servo = &servo2; break;
-    case 2: servo = &servo3; break;
-    case 3: servo = &servo4; break;
-    case 4: servo = &servo5; break;
-    case 5: servo = &servo6; break;
-    default: return;
-  }
-
-  int currentAngle = jointPositions[jointIndex];
-
-  if (currentAngle < targetAngle) {
-    for (int angle = currentAngle; angle <= targetAngle; angle++) {
-      if (emergencyStop) break;
-      servo->write(angle);
-      delay(MOVE_SPEED);
-    }
-  } else if (currentAngle > targetAngle) {
-    for (int angle = currentAngle; angle >= targetAngle; angle--) {
-      if (emergencyStop) break;
-      servo->write(angle);
-      delay(MOVE_SPEED);
-    }
-  }
-
+  servos[jointIndex].write(targetAngle);
   jointPositions[jointIndex] = targetAngle;
 }
 
-// Process incoming serial commands with improved validation
+void moveToPositions(const int* positions, int stepDelay) {
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    int target = clampAngle(i, positions[i]);
+    servos[i].write(target);
+    jointPositions[i] = target;
+    delay(stepDelay);
+  }
+}
+
+// ---------- Preset Movements ----------
+
+void moveAllToMin() {
+  moveToPositions(JOINT_MIN, 200);
+}
+
+void moveAllToMax() {
+  moveToPositions(JOINT_MAX, 200);
+}
+
+void waveGesture() {
+  int saved[NUM_JOINTS];
+  for (int i = 0; i < NUM_JOINTS; i++) saved[i] = jointPositions[i];
+
+  moveServo(1, 120);
+  moveServo(2, 90);
+  moveServo(3, 90);
+  moveServo(4, 60);
+
+  for (int w = 0; w < 3 && !emergencyStop; w++) {
+    moveServo(0, 60);
+    delay(300);
+    moveServo(0, 120);
+    delay(300);
+  }
+
+  for (int i = 0; i < NUM_JOINTS && !emergencyStop; i++) {
+    moveServo(i, saved[i]);
+  }
+}
+
+// ---------- Command Processing ----------
+
 void processCommand(String command) {
   command.trim();
   command.toUpperCase();
-
-  // Quick validation - reject empty commands
   if (command.length() == 0) return;
 
   if (command.startsWith(CMD_JOINT_PREFIX)) {
-    // Joint control command (e.g., "J1:90")
     processJointCommand(command);
   } else if (command == CMD_HOME) {
-    setupHome();
+    moveToPositions(HOME_POSITIONS, 200);
     sendStatus();
   } else if (command == CMD_STOP) {
     emergencyStop = true;
-    isRecording = false; // Also stop recording if active
-    Serial.println("ERROR:Emergency stop activated");
-    delay(50); // Brief pause to ensure stop
-    emergencyStop = false; // Reset for next commands
+    isRecording = false;
+    Serial.println(F("ERROR:Emergency stop activated"));
+    delay(50);
+    emergencyStop = false;
     sendStatus();
   } else if (command == CMD_STATUS) {
     sendStatus();
   } else if (command == CMD_MIN) {
-    minServos();
+    moveAllToMin();
     sendStatus();
   } else if (command == CMD_MAX) {
-    maxServos();
+    moveAllToMax();
     sendStatus();
   } else if (command == CMD_WAVE) {
-    waveServos();
+    waveGesture();
     sendStatus();
   } else if (command.startsWith(CMD_SET_SPEED)) {
     processSetSpeedCommand(command);
@@ -288,7 +209,7 @@ void processCommand(String command) {
     processRecordStartCommand(command);
   } else if (command == CMD_RECORD_STOP) {
     isRecording = false;
-    Serial.println("OK:Recording stopped");
+    Serial.println(F("OK:Recording stopped"));
   } else if (command.startsWith(CMD_PLAY_SEQUENCE)) {
     processPlaySequenceCommand(command);
   } else if (command == CMD_LIST_SEQUENCES) {
@@ -296,81 +217,83 @@ void processCommand(String command) {
   } else if (command.startsWith(CMD_DELETE_SEQUENCE)) {
     processDeleteSequenceCommand(command);
   } else {
-    Serial.print("ERROR:Unknown command: ");
+    Serial.print(F("ERROR:Unknown command: "));
     Serial.println(command);
   }
 }
 
-// Process joint control commands with enhanced validation
 void processJointCommand(String command) {
-  // Parse command format: J1:90
   int colonIndex = command.indexOf(':');
-  if (colonIndex == -1 || colonIndex == 1) { // Must have format J#:angle
-    Serial.println("ERROR:Invalid joint command format. Use J1:90 format");
+  if (colonIndex < 2) {
+    Serial.println(F("ERROR:Invalid format. Use J1:90"));
     return;
   }
 
-  String jointStr = command.substring(1, colonIndex);
+  int jointNum = command.substring(1, colonIndex).toInt();
+  if (jointNum < 1 || jointNum > NUM_JOINTS) {
+    Serial.println(F("ERROR:Joint must be 1-6"));
+    return;
+  }
+
   String angleStr = command.substring(colonIndex + 1);
-
-  // Validate joint string (should be single digit 1-6)
-  if (jointStr.length() != 1 || !isDigit(jointStr.charAt(0))) {
-    Serial.println("ERROR:Invalid joint number. Use 1-6");
-    return;
-  }
-
-  // Validate angle string (should be numeric)
   if (angleStr.length() == 0) {
-    Serial.println("ERROR:Missing angle value");
+    Serial.println(F("ERROR:Missing angle"));
     return;
   }
   for (unsigned int i = 0; i < angleStr.length(); i++) {
     if (!isDigit(angleStr.charAt(i))) {
-      Serial.println("ERROR:Angle must be numeric");
+      Serial.println(F("ERROR:Angle must be numeric"));
       return;
     }
   }
 
-  int jointIndex = jointStr.toInt() - 1; // Convert to 0-based index
+  int jointIndex = jointNum - 1;
   int targetAngle = angleStr.toInt();
 
-  // Double-check joint index
-  if (jointIndex < 0 || jointIndex >= 6) {
-    Serial.println("ERROR:Joint number must be 1-6");
+  if (targetAngle < JOINT_MIN[jointIndex] || targetAngle > JOINT_MAX[jointIndex]) {
+    Serial.print(F("ERROR:Joint "));
+    Serial.print(jointNum);
+    Serial.print(F(" range is "));
+    Serial.print(JOINT_MIN[jointIndex]);
+    Serial.print('-');
+    Serial.println(JOINT_MAX[jointIndex]);
     return;
   }
 
-  // Check if movement already in progress for this joint
-  if (currentMovement.active && currentMovement.jointIndex == jointIndex) {
-    Serial.println("ERROR:Joint already moving, wait for completion");
-    return;
-  }
-
-  // Move servo (blocking but reliable)
   moveServo(jointIndex, targetAngle);
 
-  // Add point to sequence if recording
   if (isRecording && currentRecordingSequence >= 0) {
-    addSequencePoint(currentRecordingSequence, MOVE_SPEED);
+    addSequencePoint(currentRecordingSequence, moveSpeed);
   }
 
   sendStatus();
 }
 
-// Send current status
-void sendStatus() {
-  Serial.print(RESP_OK);
-  for (int i = 0; i < 6; i++) {
-    Serial.print("J");
-    Serial.print(i + 1);
-    Serial.print(":");
-    Serial.print(jointPositions[i]);
-    if (i < 5) Serial.print(",");
+void processSetSpeedCommand(String command) {
+  int colonIndex = command.indexOf(':');
+  if (colonIndex == -1) {
+    Serial.println(F("ERROR:Use SET_SPEED:15"));
+    return;
   }
-  Serial.println();
+
+  int newSpeed = command.substring(colonIndex + 1).toInt();
+  if (newSpeed < MIN_MOVE_SPEED || newSpeed > MAX_MOVE_SPEED) {
+    Serial.print(F("ERROR:Speed must be "));
+    Serial.print(MIN_MOVE_SPEED);
+    Serial.print('-');
+    Serial.print(MAX_MOVE_SPEED);
+    Serial.println(F(" ms"));
+    return;
+  }
+
+  moveSpeed = newSpeed;
+  Serial.print(F("OK:Speed set to "));
+  Serial.print(moveSpeed);
+  Serial.println(F("ms"));
 }
 
-// Sequence management functions
+// ---------- Sequence Management ----------
+
 void initializeSequences() {
   for (int i = 0; i < MAX_SEQUENCES; i++) {
     sequences[i].valid = false;
@@ -380,47 +303,38 @@ void initializeSequences() {
 
 boolean createSequence(int index, String name) {
   if (index < 0 || index >= MAX_SEQUENCES) return false;
-
   name.toCharArray(sequences[index].name, SEQUENCE_NAME_LENGTH);
   sequences[index].length = 0;
   sequences[index].valid = true;
   return true;
 }
 
-boolean addSequencePoint(int sequenceIndex, int delay_ms) {
-  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) return false;
-  if (!sequences[sequenceIndex].valid) return false;
-  if (sequences[sequenceIndex].length >= MAX_SEQUENCE_LENGTH) return false;
+boolean addSequencePoint(int seqIdx, int delay_ms) {
+  if (seqIdx < 0 || seqIdx >= MAX_SEQUENCES) return false;
+  if (!sequences[seqIdx].valid) return false;
+  if (sequences[seqIdx].length >= MAX_SEQUENCE_LENGTH) return false;
 
-  int pointIndex = sequences[sequenceIndex].length;
-  for (int i = 0; i < 6; i++) {
-    sequences[sequenceIndex].points[pointIndex].joints[i] = jointPositions[i];
+  int pt = sequences[seqIdx].length;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    sequences[seqIdx].points[pt].joints[i] = jointPositions[i];
   }
-  sequences[sequenceIndex].points[pointIndex].delay_ms = delay_ms;
-  sequences[sequenceIndex].length++;
-
+  sequences[seqIdx].points[pt].delay_ms = delay_ms;
+  sequences[seqIdx].length++;
   return true;
 }
 
-// Simple blocking sequence playback (reliable)
-boolean playSequence(int sequenceIndex) {
-  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) return false;
-  if (!sequences[sequenceIndex].valid) return false;
+boolean playSequence(int seqIdx) {
+  if (seqIdx < 0 || seqIdx >= MAX_SEQUENCES) return false;
+  if (!sequences[seqIdx].valid) return false;
 
-  for (int i = 0; i < sequences[sequenceIndex].length; i++) {
-    if (emergencyStop) break;
-
-    // Move to each point in sequence
-    for (int j = 0; j < 6; j++) {
-      if (emergencyStop) break;
-      moveServo(j, sequences[sequenceIndex].points[i].joints[j]);
+  for (int i = 0; i < sequences[seqIdx].length && !emergencyStop; i++) {
+    for (int j = 0; j < NUM_JOINTS && !emergencyStop; j++) {
+      moveServo(j, sequences[seqIdx].points[i].joints[j]);
     }
-
-    if (sequences[sequenceIndex].points[i].delay_ms > 0) {
-      delay(sequences[sequenceIndex].points[i].delay_ms);
+    if (sequences[seqIdx].points[i].delay_ms > 0) {
+      delay(sequences[seqIdx].points[i].delay_ms);
     }
   }
-
   return true;
 }
 
@@ -429,121 +343,71 @@ void listSequences() {
   for (int i = 0; i < MAX_SEQUENCES; i++) {
     if (sequences[i].valid) {
       Serial.print(i);
-      Serial.print(":");
+      Serial.print(':');
       Serial.println(sequences[i].name);
     }
   }
 }
 
-
-// Process SET_SPEED command
-void processSetSpeedCommand(String command) {
-  // Format: SET_SPEED:speed_value
-  int colonIndex = command.indexOf(':');
-  if (colonIndex == -1) {
-    Serial.println("ERROR:Invalid SET_SPEED format. Use SET_SPEED:15");
-    return;
-  }
-
-  String speedStr = command.substring(colonIndex + 1);
-  int newSpeed = speedStr.toInt();
-
-  // Validate speed range (reasonable limits)
-  if (newSpeed < 5 || newSpeed > 200) {
-    Serial.println("ERROR:Speed must be between 5 and 200 ms");
-    return;
-  }
-
-  MOVE_SPEED = newSpeed;
-  Serial.print("OK:Movement speed set to ");
-  Serial.print(MOVE_SPEED);
-  Serial.println(" ms");
-}
-
 void processRecordStartCommand(String command) {
-  // Format: RECORD_START:sequence_index:name
-  int firstColon = command.indexOf(':');
-  int secondColon = command.indexOf(':', firstColon + 1);
-
-  if (firstColon == -1 || secondColon == -1) {
-    Serial.println("ERROR:Invalid RECORD_START format");
+  int c1 = command.indexOf(':');
+  int c2 = command.indexOf(':', c1 + 1);
+  if (c1 == -1 || c2 == -1) {
+    Serial.println(F("ERROR:Use RECORD_START:0:name"));
     return;
   }
 
-  String indexStr = command.substring(firstColon + 1, secondColon);
-  String nameStr = command.substring(secondColon + 1);
-
-  int sequenceIndex = indexStr.toInt();
-
-  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) {
-    Serial.println("ERROR:Invalid sequence index");
+  int seqIdx = command.substring(c1 + 1, c2).toInt();
+  if (seqIdx < 0 || seqIdx >= MAX_SEQUENCES) {
+    Serial.println(F("ERROR:Invalid sequence index"));
     return;
   }
 
-  if (createSequence(sequenceIndex, nameStr)) {
+  String name = command.substring(c2 + 1);
+  if (createSequence(seqIdx, name)) {
     isRecording = true;
-    currentRecordingSequence = sequenceIndex;
-    Serial.print("OK:Recording started for sequence ");
-    Serial.println(sequenceIndex);
+    currentRecordingSequence = seqIdx;
+    Serial.print(F("OK:Recording sequence "));
+    Serial.println(seqIdx);
   } else {
-    Serial.println("ERROR:Failed to create sequence");
+    Serial.println(F("ERROR:Failed to create sequence"));
   }
 }
 
 void processPlaySequenceCommand(String command) {
-  // Format: PLAY_SEQUENCE:sequence_index
   int colonIndex = command.indexOf(':');
   if (colonIndex == -1) {
-    Serial.println("ERROR:Invalid PLAY_SEQUENCE format. Use PLAY_SEQUENCE:0");
+    Serial.println(F("ERROR:Use PLAY_SEQUENCE:0"));
     return;
   }
 
-  String indexStr = command.substring(colonIndex + 1);
-  int sequenceIndex = indexStr.toInt();
-
-  if (playSequence(sequenceIndex)) {
-    Serial.print("OK:Sequence ");
-    Serial.print(sequenceIndex);
-    Serial.println(" completed");
+  int seqIdx = command.substring(colonIndex + 1).toInt();
+  if (playSequence(seqIdx)) {
+    Serial.print(F("OK:Sequence "));
+    Serial.print(seqIdx);
+    Serial.println(F(" done"));
     sendStatus();
   } else {
-    Serial.println("ERROR:Failed to play sequence");
+    Serial.println(F("ERROR:Failed to play sequence"));
   }
 }
 
 void processDeleteSequenceCommand(String command) {
-  // Format: DELETE_SEQUENCE:sequence_index
   int colonIndex = command.indexOf(':');
   if (colonIndex == -1) {
-    Serial.println("ERROR:Invalid DELETE_SEQUENCE format");
+    Serial.println(F("ERROR:Use DELETE_SEQUENCE:0"));
     return;
   }
 
-  String indexStr = command.substring(colonIndex + 1);
-  int sequenceIndex = indexStr.toInt();
-
-  if (sequenceIndex < 0 || sequenceIndex >= MAX_SEQUENCES) {
-    Serial.println("ERROR:Invalid sequence index");
+  int seqIdx = command.substring(colonIndex + 1).toInt();
+  if (seqIdx < 0 || seqIdx >= MAX_SEQUENCES) {
+    Serial.println(F("ERROR:Invalid sequence index"));
     return;
   }
 
-  sequences[sequenceIndex].valid = false;
-  sequences[sequenceIndex].length = 0;
-
-  Serial.print("OK:Sequence ");
-  Serial.print(sequenceIndex);
-  Serial.println(" deleted");
-}
-
-
-// Serial event handler
-void serialEvent() {
-  while (Serial.available()) {
-    char inChar = (char)Serial.read();
-    if (inChar == '\n' || inChar == '\r') {
-      stringComplete = true;
-    } else {
-      inputString += inChar;
-    }
-  }
+  sequences[seqIdx].valid = false;
+  sequences[seqIdx].length = 0;
+  Serial.print(F("OK:Sequence "));
+  Serial.print(seqIdx);
+  Serial.println(F(" deleted"));
 }

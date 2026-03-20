@@ -278,6 +278,9 @@ CMakeLists.txt.user*
 # Temporary folders
 tmp/
 temp/
+memory.db
+memory.db-shm
+memory.db-wal
 
 # Build directories
 build/
