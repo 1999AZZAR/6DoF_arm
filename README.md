@@ -1,6 +1,6 @@
-# 6DOF Robot Arm Serial Control System
+# 6DOF Robot Arm Control System
 
-A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI interface for easy control and monitoring.
+A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI interface and ESP32 WiFi bridge REST API for network-based control.
 
 **[Try the Interactive Demo](https://wokwi.com/projects/449667336179085313)** - Experience it online first!
 
@@ -25,6 +25,10 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
   - [Movement Speed](#movement-speed)
   - [Preset Positions](#preset-positions)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
+- [ESP32 WiFi Bridge](#esp32-wifi-bridge)
+  - [Bridge Setup](#bridge-setup)
+  - [Wiring](#wiring)
+  - [REST API Reference](#rest-api-reference)
 - [Troubleshooting](#troubleshooting)
   - [Connection Issues](#connection-issues)
   - [Movement Issues](#movement-issues)
@@ -46,6 +50,7 @@ A complete Arduino-based 6DOF robot arm control system with Python Qt6 GUI inter
 - **Sequence Management**: Record, play, delete, save/load to file
 - **Auto-reconnect**: GUI detects USB disconnection and reconnects automatically
 - **Keyboard Shortcuts**: Esc for emergency stop, Ctrl+H for home, Ctrl+R for recording
+- **ESP32 WiFi Bridge**: REST API over HTTP for network-based control, mDNS discovery, optional API key authentication, CORS-enabled
 - **Optimized Codebase**: Servo array architecture, char buffer serial input, compatible with Arduino Uno and Mega
 
 ## System Architecture
@@ -115,17 +120,21 @@ For detailed system flow and component interactions, see the [complete system fl
 6DoF_arm/
 ├── .git/
 ├── .gitignore
-├── code/
-│   ├── code.ino            # Main Arduino sketch
-│   └── config.h            # Configuration header (pins, limits, commands)
-├── arm_control_gui.py      # Python Qt6 GUI application
-├── requirements.txt        # Python dependencies
+├── code/                        # Arduino controller
+│   ├── code.ino                 # Main Arduino sketch
+│   └── config.h                 # Configuration (pins, limits, commands)
+├── bridge/                      # ESP32 WiFi bridge
+│   ├── bridge.ino               # REST API gateway
+│   ├── config.h                 # Bridge configuration
+│   └── secrets.h.example        # WiFi credentials template
+├── arm_control_gui.py           # Python Qt6 GUI
+├── requirements.txt             # Python dependencies
 ├── assets/
-│   ├── flowchart.mermaid   # System architecture diagram source
-│   ├── render.png          # Rendered architecture diagram
-│   ├── gui.png             # GUI screenshot
-│   ├── arm_assambler.jpg   # Assembly photo
-│   └── arm_component.jpg   # Component photo
+│   ├── flowchart.mermaid
+│   ├── render.png
+│   ├── gui.png
+│   ├── arm_assambler.jpg
+│   └── arm_component.jpg
 ├── LICENSE
 └── README.md
 ```
@@ -465,6 +474,165 @@ SET_SPEED:100  # Slow and precise
 ### Preset Positions
 
 Modify `HOME_POSITIONS` in `code/config.h` and `HOME_POSITIONS` in `arm_control_gui.py`.
+
+## ESP32 WiFi Bridge
+
+The ESP32 bridge turns the robot arm into a network-accessible device with a REST API, similar to how industrial robot controllers operate. The Arduino firmware requires no modifications -- the ESP32 speaks the same serial protocol.
+
+```
+[HTTP Client] <--WiFi--> [ESP32 Bridge] <--UART--> [Arduino Uno/Mega] <--PWM--> [Servos]
+```
+
+### Bridge Setup
+
+1. **Install dependencies** in Arduino IDE:
+   - Board: "ESP32 Dev Module" (via Boards Manager)
+   - Library: ArduinoJson (via Library Manager)
+
+2. **Configure WiFi credentials**:
+   ```bash
+   cd bridge/
+   cp secrets.h.example secrets.h
+   # Edit secrets.h with your WiFi SSID, password, and optional API key
+   ```
+
+3. **Upload to ESP32**:
+   ```bash
+   arduino-cli compile --fqbn esp32:esp32:esp32 --build-path ../build_bridge .
+   arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 .
+   ```
+
+4. **Access the API** at `http://robot-arm.local` (mDNS) or the IP printed on serial monitor.
+
+### Wiring
+
+| ESP32 Pin | Arduino Pin | Function |
+|---|---|---|
+| GPIO 16 (RX2) | TX (pin 1) | Arduino transmit to ESP32 |
+| GPIO 17 (TX2) | RX (pin 0) | ESP32 transmit to Arduino |
+| GND | GND | Common ground |
+
+Disconnect the Arduino USB cable when using the ESP32 bridge, since both share the same UART on Uno. Arduino Mega users can modify the bridge to use `Serial1` to keep USB available for debugging.
+
+### REST API Reference
+
+All endpoints return JSON. Set `X-API-Key` header if authentication is configured in `secrets.h`. CORS is enabled for browser clients.
+
+#### System
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/health` | Health check: Arduino status, WiFi RSSI, uptime |
+| GET | `/api/info` | System info: firmware version, IP, hostname, free heap |
+| GET | `/api/status` | Current joint positions |
+
+#### Joint Control
+
+| Method | Endpoint | Body | Description |
+|---|---|---|---|
+| POST | `/api/joint` | `{"joint": 1, "angle": 90}` | Move single joint |
+| POST | `/api/joints` | `{"joints": {"J1": 90, "J2": 45}}` | Move multiple joints |
+
+#### Presets and Safety
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/home` | Move to home position |
+| POST | `/api/stop` | Emergency stop (no auth required) |
+| POST | `/api/preset/min` | All joints to minimum |
+| POST | `/api/preset/max` | All joints to maximum |
+| POST | `/api/preset/wave` | Wave gesture |
+| POST | `/api/speed` | Set speed: `{"speed_ms": 15}` |
+
+#### Program Management
+
+| Method | Endpoint | Body | Description |
+|---|---|---|---|
+| GET | `/api/program/list` | -- | List stored programs |
+| POST | `/api/program/record` | `{"slot": 0, "name": "pick"}` | Start recording |
+| POST | `/api/program/stop` | -- | Stop recording |
+| POST | `/api/program/run` | `{"slot": 0}` | Execute program |
+| POST | `/api/program/delete` | `{"slot": 0}` | Delete program |
+
+#### Example Usage (curl)
+
+```bash
+# Check health
+curl http://robot-arm.local/api/health
+
+# Get current positions
+curl http://robot-arm.local/api/status
+
+# Move joint 1 to 90 degrees
+curl -X POST http://robot-arm.local/api/joint \
+  -H "Content-Type: application/json" \
+  -d '{"joint": 1, "angle": 90}'
+
+# Move multiple joints
+curl -X POST http://robot-arm.local/api/joints \
+  -H "Content-Type: application/json" \
+  -d '{"joints": {"J1": 90, "J2": 45, "J3": 60}}'
+
+# Go home
+curl -X POST http://robot-arm.local/api/home
+
+# Emergency stop
+curl -X POST http://robot-arm.local/api/stop
+
+# Set speed
+curl -X POST http://robot-arm.local/api/speed \
+  -H "Content-Type: application/json" \
+  -d '{"speed_ms": 50}'
+
+# Record a program
+curl -X POST http://robot-arm.local/api/program/record \
+  -H "Content-Type: application/json" \
+  -d '{"slot": 0, "name": "pick_and_place"}'
+
+# (move joints via /api/joint calls while recording)
+
+# Stop recording
+curl -X POST http://robot-arm.local/api/program/stop
+
+# Run the program
+curl -X POST http://robot-arm.local/api/program/run \
+  -H "Content-Type: application/json" \
+  -d '{"slot": 0}'
+
+# List programs
+curl http://robot-arm.local/api/program/list
+
+# With API key authentication
+curl -H "X-API-Key: your-key" http://robot-arm.local/api/status
+```
+
+#### Response Format
+
+Success:
+```json
+{
+  "status": "ok",
+  "positions": {"J1": 92, "J2": 85, "J3": 45, "J4": 108, "J5": 80, "J6": 152}
+}
+```
+
+Error:
+```json
+{
+  "error": "Joint 2 range is 30-150"
+}
+```
+
+Program list:
+```json
+{
+  "status": "ok",
+  "programs": [
+    {"slot": 0, "name": "pick_and_place"},
+    {"slot": 1, "name": "wave_demo"}
+  ]
+}
+```
 
 ## Troubleshooting
 
